@@ -34,9 +34,11 @@ export function Header() {
             <Search className="size-5" aria-hidden />
           </Link>
           <ThemeToggle />
-          <ButtonLink href="/post" variant="accent" className="ml-2 hidden md:inline-flex">
-            Post an ad
-          </ButtonLink>
+          <div className="ml-2 hidden md:block">
+            <ButtonLink href="/post" variant="accent">
+              Post an ad
+            </ButtonLink>
+          </div>
         </div>
       </div>
     </header>

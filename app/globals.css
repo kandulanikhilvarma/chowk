@@ -97,13 +97,10 @@
 }
 
 @layer components {
-  /* Press feedback for anything tappable. Only transform and colors animate. */
+  /* Press feedback for anything tappable. Transform only: a color transition on a light-dark()
+     value keeps the old color after a live theme switch (seen in Chrome). */
   .pressable {
-    transition:
-      transform 160ms var(--ease-out),
-      background-color 150ms ease,
-      color 150ms ease,
-      box-shadow 200ms ease;
+    transition: transform 160ms var(--ease-out);
   }
 
   @media (prefers-reduced-motion: no-preference) {

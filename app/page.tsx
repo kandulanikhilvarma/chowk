@@ -58,8 +58,14 @@ export default function Home() {
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 pt-4 md:pt-8">
       <section className="relative isolate overflow-hidden rounded-card bg-[#2B3A8C] px-5 py-8 text-white md:px-10 md:py-14">
-        <div aria-hidden className="absolute inset-y-0 right-[12%] -z-10 w-10 bg-[#F4A300]/15 md:w-16" />
-        <div aria-hidden className="absolute inset-x-0 top-[58%] -z-10 h-10 bg-[#F4A300]/15 md:h-16" />
+        <svg
+          aria-hidden
+          viewBox="0 0 200 200"
+          className="absolute -right-14 -bottom-14 -z-10 size-56 text-[#F4A300] opacity-20 md:-right-6 md:-bottom-6 md:size-80"
+        >
+          <path d="M85 0h30v200H85zM0 85h200v30H0z" fill="currentColor" />
+          <rect x="62" y="62" width="76" height="76" rx="18" fill="#2B3A8C" stroke="currentColor" strokeWidth="14" />
+        </svg>
         <h1 className="max-w-xl text-3xl font-extrabold md:text-4xl">Sell it. Find it. Around the corner.</h1>
         <p className="mt-3 max-w-lg text-base text-white/85 md:text-lg">
           Chowk is free for everyone. Post an ad in one minute, chat safely, and meet people near you.
