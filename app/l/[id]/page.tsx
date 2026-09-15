@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BadgeCheck, CalendarDays, MapPin, MessageCircle, Share2, ShieldAlert, Star } from "lucide-react";
+import { FavoriteButton } from "@/components/listing/favorite-button";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import type { Json } from "@/lib/database.types";
@@ -248,6 +249,7 @@ export default async function ListingPage({ params }: Props) {
               <Share2 className="size-5" aria-hidden />
               Share on WhatsApp
             </ButtonLink>
+            {listing.status !== "sold" && <FavoriteButton listingId={listing.id} />}
           </section>
 
           <section aria-labelledby="safety" className="space-y-2 rounded-card bg-danger-soft p-4 text-sm text-ink">
