@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import type { Json } from "@/lib/database.types";
 import { formatPrice, priceLabel, timeAgo } from "@/lib/format";
+import { photoBase } from "@/lib/listings";
 import { supabasePublic } from "@/lib/supabase/public";
 
 export const revalidate = 60;
@@ -16,7 +17,6 @@ type AttributeField = { key: string; label: string; type: string; unit?: string 
 type SellerStats = { deals: number; reliable_raters: number; friendly_raters: number; level: string; member_since: string; reply_rate: number | null };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const photoBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listing-images/`;
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chowk-kandula.vercel.app";
 
 const conditionLabel: Record<string, string> = {
@@ -207,7 +207,9 @@ export default async function ListingPage({ params }: Props) {
                 {(listing.seller?.display_name ?? "C").charAt(0).toUpperCase()}
               </span>
               <div>
-                <p className="font-semibold text-ink">{listing.seller?.display_name ?? "Chowk member"}</p>
+                <Link href={`/u/${listing.user_id}`} className="font-semibold text-ink hover:underline">
+                  {listing.seller?.display_name ?? "Chowk member"}
+                </Link>
                 <p className="text-sm text-ink-2">
                   {levelLabel[seller?.level ?? "newcomer"]}
                   {listing.seller?.is_business ? " · Business" : " · Private seller"}
