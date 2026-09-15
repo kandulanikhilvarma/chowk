@@ -744,6 +744,17 @@ export type Database = {
       handoff_upi: { Args: { p_conversation: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
+      list_cities: {
+        Args: never
+        Returns: {
+          id: number
+          lat: number
+          lng: number
+          name: string
+          slug: string
+          state: string
+        }[]
+      }
       mark_met: { Args: { p_conversation: string }; Returns: undefined }
       mark_read: { Args: { p_conversation: string }; Returns: undefined }
       mark_sold: {
