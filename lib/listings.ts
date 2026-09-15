@@ -6,7 +6,7 @@ type Fn = Database["public"]["Functions"]["search_listings"];
 export type SearchArgs = Fn["Args"];
 type SearchRow = Fn["Returns"][number];
 
-const photoBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listing-images/`;
+export const photoBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/listing-images/`;
 
 // Uploaded thumbs live in Storage; demo rows carry a hotlinked Unsplash URL instead.
 export function toCard(row: SearchRow): ListingCardData {
