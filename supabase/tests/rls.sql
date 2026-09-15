@@ -54,6 +54,7 @@ begin
   end;
 
   insert into public.profile_private (upi_id) values ('seller@okaxis');
+  insert into public.listing_images (listing_id, path, thumb_path) values (lid2, seller::text || '/a.webp', seller::text || '/a_t.webp');
 
   -- Buyer ----------------------------------------------------------------------------------
   execute 'reset role';
@@ -118,6 +119,9 @@ begin
   if public.handoff_upi(cid) is not null then raise exception 'FAIL: stranger got the UPI ID' using errcode = 'CHW01'; end if;
   n := n + 1;
 
+  -- Guest reports are stored but do not count toward the auto-hide.
+  insert into public.reports (listing_id, reason) values (lid2, 'scam');
+
   -- Seller answers, meets, sells --------------------------------------------------------------
   execute 'reset role';
   perform set_config('request.jwt.claims', json_build_object('sub', seller, 'role', 'authenticated')::text, true);
@@ -126,6 +130,11 @@ begin
   select count(*) into cnt from public.notifications where user_id = seller and kind in ('message', 'offer');
   if cnt < 2 then raise exception 'FAIL: seller missing chat or offer notifications (%)', cnt using errcode = 'CHW01'; end if;
   perform public.respond_offer(mid, true);
+  begin
+    perform public.respond_offer(mid, false);
+    raise exception 'FAIL: offer answered twice' using errcode = 'CHW01';
+  exception when raise_exception then n := n + 1;
+  end;
   perform public.mark_met(cid);
   did := public.mark_sold(lid, cid);
   n := n + 3;
@@ -177,10 +186,26 @@ begin
   n := n + 1;
   perform public.delete_account();
 
-  -- Anonymous visitor ------------------------------------------------------------------------
+  -- Buyer (a real account) reports the same listing; only this report counts.
   execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', buyer, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  insert into public.reports (listing_id, reason) values (lid2, 'scam');
+
+  execute 'reset role';
+  if (select report_count from public.listings where id = lid2) <> 1 then
+    raise exception 'FAIL: guest report counted toward auto-hide, or real report did not' using errcode = 'CHW01';
+  end if;
+  n := n + 2;
+  update public.listings set status = 'removed' where id = lid2;
+
+  -- Anonymous visitor ------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   execute 'set local role anon';
+
+  select count(*) into cnt from public.listing_images where listing_id = lid2;
+  if cnt <> 0 then raise exception 'FAIL: photos of a removed listing are still readable' using errcode = 'CHW01'; end if;
+  n := n + 1;
 
   select count(*) into cnt from public.search_listings(p_q => 'royal enfield');
   if cnt = 0 then raise exception 'FAIL: keyword search found no demo bike' using errcode = 'CHW01'; end if;

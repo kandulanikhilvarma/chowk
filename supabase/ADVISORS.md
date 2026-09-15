@@ -1,8 +1,8 @@
-# Supabase advisors
+# Supabase advisors and reviews
 
-Last run: 15 September 2026, after migration `20260915120049`.
+Last run: 15 September 2026, after migration `20260915125212`.
 
-## Security: 0 errors, 14 warnings (all accepted)
+## Security advisor: 0 errors, 14 warnings (all accepted)
 
 | Lint | Function | Why it stays |
 |---|---|---|
@@ -17,10 +17,22 @@ Last run: 15 September 2026, after migration `20260915120049`.
 
 All SECURITY DEFINER functions set `search_path = ''`. Trigger functions have EXECUTE revoked from `public`, `anon` and `authenticated`.
 
-## Performance: 0 errors, 0 warnings
+## Performance advisor: 0 errors, 0 warnings
 
 13 INFO "unused index" findings. The database is new and has no traffic yet. Search, feed, radius and chat queries use these indexes. Check again after launch.
 
+## Reviewer findings (Phase 2)
+
+| Finding | Result |
+|---|---|
+| Three free guest accounts could report a listing and hide it | Fixed in `20260915125015`. Guest reports are stored but do not count toward the hide at 3. |
+| `respond_offer` had no row lock, so a double tap could answer twice | Fixed in `20260915125212` with `for update`. |
+| Parallel requests could pass the 10 ads or 20 chats per day limit | Fixed in `20260915125212` with a per-user transaction lock. |
+| Photos of hidden or removed listings stay readable | Not a defect. The `listing_images` policy reads `listings` through its own RLS, so hidden listings hide their photos. `rls.sql` proves it. |
+| Deleted listings leave files in the public bucket | Accepted with a plan. Supabase blocks deleting `storage.objects` rows from SQL. The app removes files through the Storage API before it deletes a listing or an account (Phases 4 and 6). |
+| Deleting an account removes the ratings that person gave | Accepted for release 1. It matches the DPDP "delete my data" promise, and the person gives up their own account to do it. Revisit if abuse appears. |
+| A person with three real Google accounts can still hide a listing | Accepted. Hidden listings go to the admin report queue (Phase 6), and the owner still sees the listing. |
+
 ## RLS checks
 
-`supabase/tests/rls.sql` runs 33 checks inside one rolled-back block: self-promotion to admin, protected columns, forged notifications and system messages, reading or writing other people's chats, offers, the UPI handoff, deals, reviews, blocks, storage folders, anonymous access, and keyword, radius and category search. Result on the last run: `RLS OK: 33 checks passed`.
+`supabase/tests/rls.sql` runs 37 checks inside one rolled-back block: self-promotion to admin, protected columns, forged notifications and system messages, reading or writing other people's chats, offers answered once, the UPI handoff, deals, reviews, blocks and block privacy, guest reports, photos of removed listings, storage folders, anonymous access, and keyword, radius and category search. Result on the last run: `RLS OK: 37 checks passed`.
