@@ -10,6 +10,7 @@ import { buttonClass } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { suggestCategory } from "@/lib/category-suggest";
 import type { Json } from "@/lib/database.types";
+import { ensureSession } from "@/lib/ensure-session";
 import { formatPrice } from "@/lib/format";
 import { FULL_PX, PhotoError, THUMB_PX, resizeImage } from "@/lib/images";
 import { MAX_PHOTOS, listingSchema, listingStrength, type ListingInput } from "@/lib/listing-schema";
@@ -167,17 +168,13 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
     if (needsTerms && !acceptTerms) return setError("Accept the terms to post your first ad.");
 
     startTransition(async () => {
-      const supabase = createClient();
-      let uid = (await supabase.auth.getClaims()).data?.claims.sub;
+      setStatus("Getting ready");
+      const uid = await ensureSession();
       if (!uid) {
-        setStatus("Starting your guest account");
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error || !data.user) {
-          setStatus("");
-          return setError("Guest sign-in is not available now. Try again later.");
-        }
-        uid = data.user.id;
+        setStatus("");
+        return setError("Guest sign-in is not available now. Try again later.");
       }
+      const supabase = createClient();
 
       const uploaded: ListingInput["photos"] = [];
       for (const [i, p] of photos.entries()) {

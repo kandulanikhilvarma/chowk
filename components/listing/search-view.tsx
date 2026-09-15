@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin, SearchX } from "lucide-react";
 import { ListingCard } from "@/components/listing/listing-card";
 import { NearMe } from "@/components/listing/near-me";
+import { SaveSearchButton } from "@/components/listing/save-search-button";
 import { buttonClass } from "@/components/ui/button";
 import { getCities, searchListings } from "@/lib/listings";
 import { PAGE_SIZE, RADII, toSearchArgs, type RawParams } from "@/lib/search-params";
@@ -131,12 +132,20 @@ export async function SearchView({
         </button>
       </form>
 
-      {args.p_radius_km !== undefined && (
-        <p className="flex items-center gap-1 text-sm text-ink-2">
-          <MapPin className="size-4" aria-hidden />
-          Ads within {args.p_radius_km} km of {city ? city.name : "your location"}
-        </p>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {args.p_radius_km !== undefined ? (
+          <p className="flex items-center gap-1 text-sm text-ink-2">
+            <MapPin className="size-4" aria-hidden />
+            Ads within {args.p_radius_km} km of {city ? city.name : "your location"}
+          </p>
+        ) : (
+          <span />
+        )}
+        <SaveSearchButton
+          raw={Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === "string"))}
+          category={category}
+        />
+      </div>
 
       {listings.length === 0 ? (
         <div className="grid place-items-center gap-3 rounded-card bg-surface px-6 py-14 text-center ring-1 ring-line">
