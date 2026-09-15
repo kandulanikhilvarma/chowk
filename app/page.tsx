@@ -19,6 +19,10 @@ import {
 } from "lucide-react";
 import { ListingCard, type ListingCardData } from "@/components/listing/listing-card";
 import { ButtonLink } from "@/components/ui/button";
+import { searchListings } from "@/lib/listings";
+
+// ponytail: one minute of staleness keeps the home page cached; add revalidateTag on post when that feels slow.
+export const revalidate = 60;
 
 const categories = [
   { slug: "mobiles", label: "Mobiles", icon: Smartphone },
@@ -41,20 +45,12 @@ const trust = [
   { icon: Star, title: "Trust you can see", body: "Friendly and reliable badges come only from real deals." },
 ];
 
-const photo = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&h=600&q=70`;
-const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+export default async function Home() {
+  const [fresh, free] = await Promise.all([
+    searchListings({ p_limit: 8 }),
+    searchListings({ p_price_type: "free", p_limit: 4 }),
+  ]);
 
-// ponytail: static demo cards until Phase 3 reads real listings from Supabase.
-const demo: ListingCardData[] = [
-  { id: "demo-1", title: "iPhone 13, 128 GB, battery 89%, with bill and box", pricePaise: 3_850_000, priceType: "negotiable", kind: "offer", city: "Hyderabad", locality: "Madhapur", distanceKm: 1.8, createdAt: hoursAgo(2), imageUrl: photo("photo-1585060544812-6b45742d762f"), isDemo: true },
-  { id: "demo-2", title: "Royal Enfield Classic 350, 2021, 18,000 km, first owner", pricePaise: 14_500_000, priceType: "fixed", kind: "offer", city: "Bengaluru", locality: "Koramangala", distanceKm: 4.2, createdAt: hoursAgo(5), imageUrl: photo("photo-1622185135505-2d795003994a"), isDemo: true },
-  { id: "demo-3", title: "UPSC and NCERT book set, free to a student", pricePaise: null, priceType: "free", kind: "offer", city: "Vijayawada", locality: "Benz Circle", distanceKm: 0.6, createdAt: hoursAgo(8), imageUrl: photo("photo-1524995997946-a1c2e315a42f"), isDemo: true },
-  { id: "demo-4", title: "3 seater fabric sofa, 2 years old, no stains", pricePaise: 1_200_000, priceType: "negotiable", kind: "offer", city: "Pune", locality: "Baner", distanceKm: 2.6, createdAt: hoursAgo(26), imageUrl: photo("photo-1560184897-67f4a3f9a7fa"), isDemo: true },
-  { id: "demo-5", title: "Looking for an acoustic guitar for a beginner", pricePaise: 500_000, priceType: "negotiable", kind: "wanted", city: "Chennai", locality: "Adyar", distanceKm: 3.1, createdAt: hoursAgo(30), imageUrl: photo("photo-1525201548942-d8732f6617a0"), isDemo: true },
-  { id: "demo-6", title: "Ladies cycle, 26 inch, swap for a kids cycle", pricePaise: null, priceType: "swap", kind: "offer", city: "Kolkata", locality: "Salt Lake", distanceKm: 5.4, createdAt: hoursAgo(50), imageUrl: photo("photo-1523740856324-f2ce89135981"), isDemo: true },
-];
-
-export default function Home() {
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 pt-4 md:pt-8">
       <section className="relative isolate overflow-hidden rounded-card bg-[#2B3A8C] px-5 py-8 text-white md:px-10 md:py-14">
@@ -115,23 +111,8 @@ export default function Home() {
         </ul>
       </section>
 
-      <section aria-labelledby="fresh">
-        <div className="mb-4 flex items-end justify-between">
-          <h2 id="fresh" className="text-2xl font-bold">
-            Fresh near you
-          </h2>
-          <Link href="/s" className="text-sm font-semibold text-primary hover:underline">
-            See all
-          </Link>
-        </div>
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
-          {demo.map((listing) => (
-            <li key={listing.id}>
-              <ListingCard listing={listing} />
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ListingRail id="fresh" title="Fresh on Chowk" href="/s" listings={fresh} />
+      <ListingRail id="free" title="Free to a good home" href="/s?price_type=free" listings={free} />
 
       <section aria-label="Why Chowk" className="grid gap-3 md:grid-cols-3">
         {trust.map(({ icon: Icon, title, body }) => (
@@ -147,5 +128,28 @@ export default function Home() {
         ))}
       </section>
     </div>
+  );
+}
+
+function ListingRail({ id, title, href, listings }: { id: string; title: string; href: string; listings: ListingCardData[] }) {
+  if (listings.length === 0) return null;
+  return (
+    <section aria-labelledby={id}>
+      <div className="mb-4 flex items-end justify-between">
+        <h2 id={id} className="text-2xl font-bold">
+          {title}
+        </h2>
+        <Link href={href} className="text-sm font-semibold text-primary hover:underline">
+          See all
+        </Link>
+      </div>
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+        {listings.map((listing) => (
+          <li key={listing.id}>
+            <ListingCard listing={listing} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
