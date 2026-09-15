@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { MapPin, SearchX } from "lucide-react";
 import { ListingCard } from "@/components/listing/listing-card";
+import { NearMe } from "@/components/listing/near-me";
 import { buttonClass } from "@/components/ui/button";
-import { searchListings } from "@/lib/listings";
-import { PAGE_SIZE, toSearchArgs, type RawParams } from "@/lib/search-params";
+import { getCities, searchListings } from "@/lib/listings";
+import { PAGE_SIZE, RADII, toSearchArgs, type RawParams } from "@/lib/search-params";
 
 type Category = { slug: string; name: string };
 
@@ -22,11 +23,14 @@ export async function SearchView({
   category?: string;
   categories: Category[];
 }) {
-  const { args, page } = toSearchArgs(raw, category);
+  const value = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : "");
+  const cities = await getCities();
+  const city = cities.find((c) => c.slug === value("city"));
+  const { args, page } = toSearchArgs(raw, category, city && { lat: city.lat, lng: city.lng });
   const rows = await searchListings(args);
   const listings = rows.slice(0, PAGE_SIZE);
   const hasNext = rows.length > PAGE_SIZE;
-  const value = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : "");
+  const nearBrowser = !city && args.p_lat !== undefined;
 
   const pageHref = (p: number) => {
     const sp = new URLSearchParams();
@@ -41,6 +45,12 @@ export async function SearchView({
       <h1 className="text-2xl font-bold md:text-3xl">{title}</h1>
 
       <form action={path} role="search" className="grid grid-cols-2 gap-2 md:grid-cols-6">
+        {nearBrowser && (
+          <>
+            <input type="hidden" name="lat" value={value("lat")} />
+            <input type="hidden" name="lng" value={value("lng")} />
+          </>
+        )}
         <label className="col-span-2 md:col-span-2">
           <span className="sr-only">Search</span>
           <input name="q" type="search" defaultValue={value("q")} placeholder="Phones, bikes, sofas, books" className={field} />
@@ -58,6 +68,28 @@ export async function SearchView({
             </select>
           </label>
         )}
+        <label>
+          <span className="sr-only">City</span>
+          <select name="city" defaultValue={city?.slug ?? ""} className={field}>
+            <option value="">{nearBrowser ? "Near my location" : "Anywhere in India"}</option>
+            {cities.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Distance</span>
+          <select name="radius" defaultValue={String(args.p_radius_km ?? 25)} className={field}>
+            {RADII.map((r) => (
+              <option key={r} value={r}>
+                Within {r} km
+              </option>
+            ))}
+          </select>
+        </label>
+        <NearMe />
         <label>
           <span className="sr-only">Price type</span>
           <select name="price_type" defaultValue={value("price_type")} className={field}>
@@ -81,6 +113,7 @@ export async function SearchView({
           <select name="sort" defaultValue={value("sort")} className={field}>
             <option value="">Best match</option>
             <option value="newest">Newest</option>
+            <option value="nearest">Nearest first</option>
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
           </select>
@@ -98,11 +131,20 @@ export async function SearchView({
         </button>
       </form>
 
+      {args.p_radius_km !== undefined && (
+        <p className="flex items-center gap-1 text-sm text-ink-2">
+          <MapPin className="size-4" aria-hidden />
+          Ads within {args.p_radius_km} km of {city ? city.name : "your location"}
+        </p>
+      )}
+
       {listings.length === 0 ? (
         <div className="grid place-items-center gap-3 rounded-card bg-surface px-6 py-14 text-center ring-1 ring-line">
           <SearchX className="size-10 text-ink-2" aria-hidden />
           <p className="font-display text-xl font-bold">No ads match this search</p>
-          <p className="max-w-sm text-sm text-ink-2">Try fewer words or remove a filter. You can also post a Wanted ad and let sellers find you.</p>
+          <p className="max-w-sm text-sm text-ink-2">
+            Try fewer words, a larger distance or fewer filters. You can also post a Wanted ad and let sellers find you.
+          </p>
           <Link href="/post" className={buttonClass({ variant: "accent" })}>
             Post a Wanted ad
           </Link>

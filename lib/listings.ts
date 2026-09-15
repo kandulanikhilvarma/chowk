@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { ListingCardData } from "@/components/listing/listing-card";
 import type { Database } from "@/lib/database.types";
 import { supabasePublic } from "@/lib/supabase/public";
@@ -24,6 +25,13 @@ export function toCard(row: SearchRow): ListingCardData {
     isDemo: row.is_demo,
   };
 }
+
+// One query per request, shared by the city picker and the radius origin.
+export const getCities = cache(async () => {
+  const { data, error } = await supabasePublic.rpc("list_cities");
+  if (error) throw new Error(`list_cities failed: ${error.message}`);
+  return data;
+});
 
 export async function searchListings(args: SearchArgs = {}): Promise<ListingCardData[]> {
   const { data, error } = await supabasePublic.rpc("search_listings", args);
