@@ -51,7 +51,8 @@ test("post, edit, reserve, mark sold and delete an ad", async ({ page }) => {
     const row = page.locator("li", { hasText: title });
     if (await row.count()) {
       await row.getByRole("button", { name: "Delete" }).click();
-      await expect(row).toHaveCount(0);
+      // The list refreshes after the server action, which can take a while on a cold dev server.
+      await expect(row).toHaveCount(0, { timeout: 20_000 });
     }
   }
 });

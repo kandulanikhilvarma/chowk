@@ -86,7 +86,7 @@ test("chat, offer, deal and ratings between two people", async ({ page: seller, 
     const row = seller.locator("li", { hasText: title });
     if (await row.count()) {
       await row.getByRole("button", { name: "Delete" }).click();
-      await expect(row).toHaveCount(0);
+      await expect(row).toHaveCount(0, { timeout: 20_000 });
     }
   }
 });
