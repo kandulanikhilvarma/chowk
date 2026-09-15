@@ -61,7 +61,7 @@ export default function Home() {
         <svg
           aria-hidden
           viewBox="0 0 200 200"
-          className="absolute -right-14 -bottom-14 -z-10 size-56 text-[#F4A300] opacity-20 md:-right-6 md:-bottom-6 md:size-80"
+          className="absolute -right-16 -bottom-16 -z-10 size-44 text-white opacity-[0.08] md:-right-6 md:-bottom-6 md:size-80"
         >
           <path d="M85 0h30v200H85zM0 85h200v30H0z" fill="currentColor" />
           <rect x="62" y="62" width="76" height="76" rx="18" fill="#2B3A8C" stroke="currentColor" strokeWidth="14" />
