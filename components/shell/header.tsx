@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
+import { HeaderLinks } from "./header-links";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
@@ -33,6 +34,7 @@ export function Header() {
           >
             <Search className="size-5" aria-hidden />
           </Link>
+          <HeaderLinks />
           <ThemeToggle />
           <div className="ml-2 hidden md:block">
             <ButtonLink href="/post" variant="accent">

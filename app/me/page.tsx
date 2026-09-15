@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, Heart } from "lucide-react";
+import { Bell, Heart, Settings } from "lucide-react";
 import { SignIn, SignOut } from "@/components/auth/sign-in";
 import { MyAds, type MyAd } from "@/components/listing/my-ads";
 import { buttonClass } from "@/components/ui/button";
@@ -83,6 +83,10 @@ export default async function MePage() {
         <Link href="/me/searches" className={buttonClass({ variant: "secondary" })}>
           <Bell className="size-5" aria-hidden />
           Saved searches
+        </Link>
+        <Link href="/me/settings" className={buttonClass({ variant: "secondary" })}>
+          <Settings className="size-5" aria-hidden />
+          Settings
         </Link>
       </nav>
 

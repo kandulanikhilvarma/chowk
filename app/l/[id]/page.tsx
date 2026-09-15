@@ -6,6 +6,7 @@ import { BadgeCheck, CalendarDays, MapPin, MessageCircle, Share2, ShieldAlert, S
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
+import { badgeLabel, levelLabel } from "@/lib/badges";
 import type { Json } from "@/lib/database.types";
 import { formatPrice, priceLabel, timeAgo } from "@/lib/format";
 import { photoBase } from "@/lib/listings";
@@ -27,8 +28,6 @@ const conditionLabel: Record<string, string> = {
   fair: "Fair",
   for_parts: "For parts",
 };
-
-const levelLabel: Record<string, string> = { newcomer: "Newcomer", trusted: "Trusted", regular: "Regular" };
 
 // Metadata and the page need the same row; cache() makes it one query per request.
 const getListing = cache(async (id: string) => {
@@ -78,6 +77,9 @@ export default async function ListingPage({ params }: Props) {
 
   const { data: stats } = await supabasePublic.rpc("profile_public_stats", { p_user: listing.user_id });
   const seller = stats as SellerStats | null;
+  const badges = seller
+    ? [badgeLabel("friendly", seller.friendly_raters), badgeLabel("reliable", seller.reliable_raters)].filter((b): b is string => !!b)
+    : [];
   const gallery = photos(listing);
   const attributes = [
     ...(listing.condition ? [{ label: "Condition", value: conditionLabel[listing.condition] }] : []),
@@ -217,6 +219,15 @@ export default async function ListingPage({ params }: Props) {
                 </p>
               </div>
             </div>
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {badges.map((b) => (
+                  <Badge key={b} tone="success">
+                    {b}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {seller && (
               <ul className="grid grid-cols-3 gap-2 text-center text-sm">
                 <li className="rounded-field bg-surface-2 p-2">

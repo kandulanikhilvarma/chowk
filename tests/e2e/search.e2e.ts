@@ -44,7 +44,8 @@ test("search form sends the query and city", async ({ page }) => {
   await page.getByRole("combobox", { name: "City" }).selectOption("mumbai");
   await page.getByRole("button", { name: "Show results" }).click();
   await expect(page).toHaveURL(/q=iphone.*city=mumbai|city=mumbai.*q=iphone/);
-  expect(await titles(page)).toEqual(expect.arrayContaining([expect.stringContaining("iPhone 13")]));
+  // The URL changes before the new results render, so wait for the card itself.
+  await expect(page.locator(card, { hasText: "iPhone 13" }).first()).toBeVisible();
 });
 
 test("sign-in callback never redirects off site", async ({ page }) => {

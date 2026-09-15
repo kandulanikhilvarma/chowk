@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 // Needs anonymous sign-ins turned on in Supabase. Rows use the e2e_ title prefix and are deleted at the end.
 // ponytail: the guest user stays behind. Remove it with the account delete flow once Phase 6 ships it.
 test.skip(!process.env.E2E_WRITES, "set E2E_WRITES=1 to run tests that write data");
+test.setTimeout(120_000);
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -50,7 +51,8 @@ test("post, edit, reserve, mark sold and delete an ad", async ({ page }) => {
     const row = page.locator("li", { hasText: title });
     if (await row.count()) {
       await row.getByRole("button", { name: "Delete" }).click();
-      await expect(row).toHaveCount(0);
+      // The list refreshes after the server action, which can take a while on a cold dev server.
+      await expect(row).toHaveCount(0, { timeout: 20_000 });
     }
   }
 });
