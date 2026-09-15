@@ -105,6 +105,14 @@ function MyAdRow({ ad }: { ad: MyAd }) {
             {label}
           </Chip>
         ))}
+        {ad.status !== "sold" && (
+          <Link
+            href={`/l/${ad.id}/edit`}
+            className="pressable inline-flex h-9 shrink-0 items-center rounded-full border border-line bg-surface px-3.5 text-sm font-medium text-ink hover:bg-surface-2"
+          >
+            Edit
+          </Link>
+        )}
         <Chip onClick={() => run("delete")} disabled={pending} className="text-danger">
           Delete
         </Chip>

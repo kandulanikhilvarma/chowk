@@ -5,7 +5,7 @@ import { ImagePlus, Lightbulb, ShieldAlert, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { z } from "zod";
-import { createListing } from "@/app/post/actions";
+import { createListing, updateListing } from "@/app/post/actions";
 import { buttonClass } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { suggestCategory } from "@/lib/category-suggest";
@@ -21,8 +21,12 @@ type AttributeField = { key: string; label: string; type: string; unit?: string;
 type Category = { id: number; slug: string; name: string; attribute_schema: Json };
 type City = { id: number; name: string };
 type Resized = Awaited<ReturnType<typeof resizeImage>>;
-type Photo = { id: string; full: Resized; thumb: Resized; preview: string };
+type StoredFile = ListingInput["photos"][number];
+// A photo is either already in storage (edit) or a resized file that still needs an upload.
+type Photo = { id: string; preview: string } & ({ saved: StoredFile } | { saved?: undefined; full: Resized; thumb: Resized });
 type Hint = { median_paise: number; low_paise: number; high_paise: number } | null;
+
+export type SavedPhoto = StoredFile & { url: string };
 
 const DRAFT_KEY = "chowk:post-draft";
 const blank = {
@@ -38,7 +42,7 @@ const blank = {
   pincode: "",
   attributes: {} as Record<string, string | boolean>,
 };
-type Draft = typeof blank;
+export type PostDraft = typeof blank;
 
 const input = "h-11 w-full rounded-field border border-line bg-surface px-3 text-[15px] text-ink";
 const labelClass = "mb-1 block text-sm font-medium text-ink";
@@ -64,7 +68,7 @@ function readDraft() {
     return null;
   }
 }
-function writeDraft(d: Draft | null) {
+function writeDraft(d: PostDraft | null) {
   try {
     if (d) localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     else localStorage.removeItem(DRAFT_KEY);
@@ -72,7 +76,7 @@ function writeDraft(d: Draft | null) {
 }
 const noSubscribe = () => () => {};
 
-function toInput(d: Draft, photos: ListingInput["photos"], acceptTerms: boolean): ListingInput {
+function toInput(d: PostDraft, photos: ListingInput["photos"], acceptTerms: boolean): ListingInput {
   return {
     kind: d.kind,
     title: d.title,
@@ -90,13 +94,25 @@ function toInput(d: Draft, photos: ListingInput["photos"], acceptTerms: boolean)
   };
 }
 
-export function PostForm({ categories, cities, needsTerms }: { categories: Category[]; cities: City[]; needsTerms: boolean }) {
+export function PostForm({
+  categories,
+  cities,
+  needsTerms,
+  edit,
+}: {
+  categories: Category[];
+  cities: City[];
+  needsTerms: boolean;
+  edit?: { id: string; draft: PostDraft; photos: SavedPhoto[] };
+}) {
   const router = useRouter();
   const savedDraft = useSyncExternalStore(noSubscribe, readDraft, () => null);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [draft, setDraft] = useState<Draft>(blank);
-  const [touched, setTouched] = useState(false);
+  const [step, setStep] = useState<1 | 2>(edit ? 2 : 1);
+  const [photos, setPhotos] = useState<Photo[]>(
+    () => edit?.photos.map(({ url, ...saved }) => ({ id: saved.path, preview: url, saved })) ?? [],
+  );
+  const [draft, setDraft] = useState<PostDraft>(edit?.draft ?? blank);
+  const [touched, setTouched] = useState(Boolean(edit));
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [hint, setHint] = useState<Hint>(null);
   const [photoError, setPhotoError] = useState("");
@@ -118,11 +134,12 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
     placeSet: Boolean(draft.categoryId && draft.cityId),
   });
 
-  function update(patch: Partial<Draft>) {
+  function update(patch: Partial<PostDraft>) {
     const next = { ...draft, ...patch };
     setDraft(next);
     setTouched(true);
-    writeDraft(next);
+    // Edits save to the ad itself. Only a new ad keeps a local draft.
+    if (!edit) writeDraft(next);
     if (patch.categoryId !== undefined) loadHint(patch.categoryId);
   }
 
@@ -138,7 +155,7 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
     for (const file of Array.from(files ?? []).slice(0, MAX_PHOTOS - photos.length)) {
       try {
         const [full, thumb] = await Promise.all([resizeImage(file, FULL_PX), resizeImage(file, THUMB_PX)]);
-        const photo = { id: crypto.randomUUID(), full, thumb, preview: URL.createObjectURL(thumb.blob) };
+        const photo: Photo = { id: crypto.randomUUID(), full, thumb, preview: URL.createObjectURL(thumb.blob) };
         setPhotos((p) => (p.length < MAX_PHOTOS ? [...p, photo] : p));
       } catch (e) {
         setPhotoError(e instanceof PhotoError ? e.message : "This photo could not be added. Try a different photo.");
@@ -149,7 +166,7 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
   function removePhoto(id: string) {
     setPhotos((p) => {
       const gone = p.find((x) => x.id === id);
-      if (gone) URL.revokeObjectURL(gone.preview);
+      if (gone && !gone.saved) URL.revokeObjectURL(gone.preview);
       return p.filter((x) => x.id !== id);
     });
   }
@@ -174,15 +191,18 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
         setStatus("");
         return setError("Guest sign-in is not available now. Try again later.");
       }
-      const supabase = createClient();
+      const bucket = createClient().storage.from("listing-images");
 
       const uploaded: ListingInput["photos"] = [];
       for (const [i, p] of photos.entries()) {
+        if (p.saved) {
+          uploaded.push(p.saved);
+          continue;
+        }
         setStatus(`Uploading photo ${i + 1} of ${photos.length}`);
         const ext = (b: Blob) => (b.type === "image/webp" ? "webp" : "jpg");
         const path = `${uid}/${p.id}.${ext(p.full.blob)}`;
         const thumbPath = `${uid}/${p.id}_t.${ext(p.thumb.blob)}`;
-        const bucket = supabase.storage.from("listing-images");
         const results = await Promise.all([
           bucket.upload(path, p.full.blob, { contentType: p.full.blob.type, upsert: true }),
           bucket.upload(thumbPath, p.thumb.blob, { contentType: p.thumb.blob.type, upsert: true }),
@@ -195,13 +215,14 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
       }
 
       setStatus("Saving your ad");
-      const result = await createListing(toInput(draft, uploaded, acceptTerms));
+      const data = toInput(draft, uploaded, acceptTerms);
+      const result = edit ? await updateListing(edit.id, data) : await createListing(data);
       if ("error" in result) {
         setStatus("");
         setFields(result.fields ?? {});
         return setError(result.error);
       }
-      writeDraft(null);
+      if (!edit) writeDraft(null);
       router.push(`/l/${result.id}`);
     });
   }
@@ -214,14 +235,14 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
       <section aria-labelledby="photos-step" className="space-y-4">
         <div>
           <h2 id="photos-step" className="text-xl font-bold">
-            Step 1 of 2: Photos
+            {edit ? "Photos" : "Step 1 of 2: Photos"}
           </h2>
           <p className="text-sm text-ink-2">Add up to {MAX_PHOTOS} photos. The first photo is the cover.</p>
         </div>
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {photos.map((p, i) => (
             <li key={p.id} className="relative aspect-square overflow-hidden rounded-field bg-surface-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview or stored thumbnail */}
               <img src={p.preview} alt={`Photo ${i + 1}`} className="size-full object-cover" />
               {i === 0 && (
                 <span className="absolute bottom-1 left-1 rounded-full bg-ink/80 px-2 py-0.5 text-xs text-bg">Cover</span>
@@ -262,9 +283,9 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={() => setStep(2)} className={buttonClass()}>
-            {photos.length ? "Next: details" : "Continue without photos"}
+            {edit ? "Back to details" : photos.length ? "Next: details" : "Continue without photos"}
           </button>
-          {savedDraft && !touched && (
+          {!edit && savedDraft && !touched && (
             <Chip
               onClick={() => {
                 try {
@@ -544,10 +565,10 @@ export function PostForm({ categories, cities, needsTerms }: { categories: Categ
 
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={pending} className={buttonClass({ variant: "accent" })}>
-          {pending ? "Posting" : "Post my ad"}
+          {pending ? "Saving" : edit ? "Save changes" : "Post my ad"}
         </button>
         <button type="button" onClick={() => setStep(1)} disabled={pending} className={buttonClass({ variant: "secondary" })}>
-          Back to photos
+          {edit ? `Photos (${photos.length})` : "Back to photos"}
         </button>
       </div>
     </form>
