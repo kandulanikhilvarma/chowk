@@ -6,5 +6,6 @@ import type { Database } from "@/lib/database.types";
 export const supabasePublic = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  { auth: { persistSession: false, autoRefreshToken: false } },
+  // Own storage key: in the browser it must not share one with the signed-in client.
+  { auth: { persistSession: false, autoRefreshToken: false, storageKey: "chowk-public" } },
 );

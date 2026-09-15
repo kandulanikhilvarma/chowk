@@ -4,6 +4,7 @@ import { cache } from "react";
 import { BadgeCheck, CalendarDays, Handshake, Star } from "lucide-react";
 import { ListingCard, type ListingCardData } from "@/components/listing/listing-card";
 import { Badge } from "@/components/ui/badge";
+import { badgeLabel, levelLabel } from "@/lib/badges";
 import { photoBase } from "@/lib/listings";
 import { supabasePublic } from "@/lib/supabase/public";
 
@@ -13,7 +14,6 @@ type Props = { params: Promise<{ id: string }> };
 type Stats = { deals: number; reliable_raters: number; friendly_raters: number; level: string; member_since: string; reply_rate: number | null; reply_minutes: number | null };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const levelLabel: Record<string, string> = { newcomer: "Newcomer", trusted: "Trusted", regular: "Regular" };
 
 const getProfile = cache(async (id: string) => {
   if (!UUID.test(id)) return null;
@@ -49,6 +49,9 @@ export default async function ProfilePage({ params }: Props) {
   if (error) throw new Error(`listings for ${profile.id} failed: ${error.message}`);
 
   const s = stats as Stats | null;
+  const badges = s
+    ? [badgeLabel("friendly", s.friendly_raters), badgeLabel("reliable", s.reliable_raters)].filter((b): b is string => !!b)
+    : [];
   const listings: ListingCardData[] = (rows ?? []).map((r) => {
     const thumb = [...r.images].sort((a, b) => a.position - b.position)[0]?.thumb_path;
     return {
@@ -78,6 +81,11 @@ export default async function ProfilePage({ params }: Props) {
             <Badge tone="primary">{levelLabel[s?.level ?? "newcomer"]}</Badge>
             <Badge>{profile.is_business ? "Business" : "Private seller"}</Badge>
             {profile.is_guest && <Badge>Guest account</Badge>}
+            {badges.map((b) => (
+              <Badge key={b} tone="success">
+                {b}
+              </Badge>
+            ))}
           </div>
           <p className="flex items-center gap-1 text-sm text-ink-2">
             <CalendarDays className="size-4" aria-hidden />

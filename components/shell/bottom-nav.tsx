@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, MessageCircle, Plus, Search, User } from "lucide-react";
+import { CountBadge } from "./header-links";
+import { useUnread } from "./use-unread";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
@@ -15,6 +17,7 @@ const items = [
 // Mobile only. Sell sits in the center because it is the action we want to be easiest.
 export function BottomNav() {
   const path = usePathname();
+  const { chats } = useUnread();
 
   return (
     <nav
@@ -36,7 +39,10 @@ export function BottomNav() {
                     <Icon className="size-6" strokeWidth={2.5} aria-hidden />
                   </span>
                 ) : (
-                  <Icon className="size-6" strokeWidth={active ? 2.4 : 1.8} aria-hidden />
+                  <span className="relative">
+                    <Icon className="size-6" strokeWidth={active ? 2.4 : 1.8} aria-hidden />
+                    {href === "/messages" && <CountBadge count={chats} />}
+                  </span>
                 )}
                 {label}
               </Link>

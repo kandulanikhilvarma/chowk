@@ -820,6 +820,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      unread_counts: { Args: never; Returns: Json }
     }
     Enums: {
       item_condition: "new" | "like_new" | "good" | "fair" | "for_parts"
