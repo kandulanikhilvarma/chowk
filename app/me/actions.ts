@@ -77,6 +77,7 @@ export async function manageAd(id: string, action: AdAction): Promise<AdResult> 
 
   revalidatePath("/me");
   revalidatePath(`/l/${id}`);
+  revalidatePath("/u/[id]", "page");
   revalidatePath("/");
   return { notice };
 }
