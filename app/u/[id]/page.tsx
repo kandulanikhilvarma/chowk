@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BadgeCheck, CalendarDays, Handshake, Star } from "lucide-react";
 import { ListingCard, type ListingCardData } from "@/components/listing/listing-card";
+import { ReportButton } from "@/components/safety/report-button";
 import { Badge } from "@/components/ui/badge";
 import { badgeLabel, levelLabel } from "@/lib/badges";
 import { photoBase } from "@/lib/listings";
@@ -91,6 +92,7 @@ export default async function ProfilePage({ params }: Props) {
             <CalendarDays className="size-4" aria-hidden />
             Member since {since}
           </p>
+          <ReportButton userId={profile.id} label="Report this person" />
         </div>
       </header>
 

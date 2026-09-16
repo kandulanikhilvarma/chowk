@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anek_Latin, Inter } from "next/font/google";
 import { BottomNav } from "@/components/shell/bottom-nav";
+import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import "./globals.css";
 
@@ -39,9 +40,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <Header />
-        <main id="main" className="pb-24 md:pb-8">
+        <main id="main" className="pb-8">
           {children}
         </main>
+        <Footer />
         <BottomNav />
       </body>
     </html>

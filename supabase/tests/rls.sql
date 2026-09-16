@@ -8,7 +8,7 @@ declare
   guest constant uuid := '00000000-0000-4000-8000-0000000000c3';
   cat int; city int;
   lid uuid; lid2 uuid; cid uuid; cid2 uuid; did uuid; mid bigint;
-  n int := 0; cnt int;
+  n int := 0; cnt int; rid bigint;
 begin
   select id into cat from public.categories where slug = 'mobiles';
   select id into city from public.cities where slug = 'hyderabad';
@@ -198,6 +198,33 @@ begin
   end if;
   n := n + 2;
   update public.listings set status = 'removed' where id = lid2;
+
+  -- Moderation: only admins, and clients cannot read the role column --------------------------------
+  select id into rid from public.reports where listing_id = lid2 order by id limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', seller, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  begin
+    perform public.moderate_report(rid, false);
+    raise exception 'FAIL: non-admin moderated a report' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+  begin
+    perform role from public.profiles where id = seller;
+    raise exception 'FAIL: client read profiles.role' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+
+  execute 'reset role';
+  update public.profiles set role = 'admin' where id = buyer;
+  perform set_config('request.jwt.claims', json_build_object('sub', buyer, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  perform public.moderate_report(rid, false);
+  execute 'reset role';
+  if exists (select 1 from public.reports where listing_id = lid2 and status = 'open')
+     or (select report_count from public.listings where id = lid2) <> 0 then
+    raise exception 'FAIL: admin dismiss did not close the reports and clear the count' using errcode = 'CHW01';
+  end if;
+  n := n + 1;
 
   -- Anonymous visitor ------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
