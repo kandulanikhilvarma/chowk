@@ -77,6 +77,7 @@ export async function manageAd(id: string, action: AdAction): Promise<AdResult> 
 
   revalidatePath("/me");
   revalidatePath(`/l/${id}`);
+  revalidatePath("/u/[id]", "page");
   revalidatePath("/");
   return { notice };
 }
@@ -125,6 +126,9 @@ export async function saveSearch(raw: Record<string, string>, routeCategory?: st
       lat: args.p_lat,
       lng: args.p_lng,
       radius_km: args.p_radius_km,
+      days: args.p_days,
+      seller: args.p_seller,
+      photos: args.p_has_photos,
     },
   });
   if (error) return failure(error, "saveSearch");

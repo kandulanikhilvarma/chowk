@@ -54,3 +54,33 @@ test("sign-in callback never redirects off site", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue as guest" })).toBeVisible();
 });
+
+test("a plain browse starts at the visitor city and a search does not", async ({ browser }) => {
+  // Vercel replaces this header with the real one, so the check runs only against a local server.
+  test.skip(!!process.env.E2E_BASE_URL?.startsWith("https://"), "Vercel sets x-vercel-ip-city itself");
+  const context = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-city": "Bangalore" } });
+  const page = await context.newPage();
+  await page.goto("/s");
+  await expect(page.getByText("Ads within 25 km of Bengaluru")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "City" })).toHaveValue("bengaluru");
+  await page.goto("/s?q=royal+enfield");
+  await expect(page.getByText(/Ads within/)).toHaveCount(0);
+  await context.close();
+});
+
+test("seller, date and photo filters stay in the form", async ({ page }) => {
+  await page.goto("/s?days=30&seller=private&photos=1");
+  await expect(page.getByRole("combobox", { name: "Posted within" })).toHaveValue("30");
+  await expect(page.getByRole("combobox", { name: "Seller" })).toHaveValue("private");
+  await expect(page.getByRole("checkbox", { name: "With photos" })).toBeChecked();
+  await expect(page.locator(card).first()).toBeVisible();
+});
+
+test("demo ad credits the photographer and has a share image", async ({ page, request }) => {
+  await page.goto("/s?q=iphone");
+  await page.locator(card).first().click();
+  await expect(page.getByRole("link", { name: "Unsplash" })).toHaveAttribute("href", /utm_source=chowk/);
+  const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+  const res = await request.get(new URL(og!).pathname + new URL(og!).search);
+  expect(res.headers()["content-type"]).toBe("image/png");
+});

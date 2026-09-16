@@ -17,6 +17,9 @@ type Query = {
   lat?: number;
   lng?: number;
   radius_km?: number;
+  days?: number;
+  seller?: string;
+  photos?: boolean;
 };
 
 // Turns the stored query (normalize_saved_search keeps only these keys) back into a search link.
@@ -27,6 +30,9 @@ function searchHref(query: Query, slugs: Map<number, string>) {
   if (query.kind) sp.set("kind", query.kind);
   if (query.min_paise != null) sp.set("min", String(query.min_paise / 100));
   if (query.max_paise != null) sp.set("max", String(query.max_paise / 100));
+  if (query.days) sp.set("days", String(query.days));
+  if (query.seller) sp.set("seller", query.seller);
+  if (query.photos) sp.set("photos", "1");
   if (query.lat != null && query.lng != null) {
     sp.set("lat", String(query.lat));
     sp.set("lng", String(query.lng));

@@ -159,6 +159,7 @@ export async function updateListing(id: string, input: unknown): Promise<PostRes
   }
 
   revalidatePath(`/l/${id}`);
+  revalidatePath("/u/[id]", "page");
   revalidatePath("/me");
   revalidatePath("/");
   return { id };

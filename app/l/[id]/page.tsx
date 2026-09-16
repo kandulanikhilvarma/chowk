@@ -21,6 +21,8 @@ type SellerStats = { deals: number; reliable_raters: number; friendly_raters: nu
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chowk-kandula.vercel.app";
+// Unsplash asks for these referral parameters on every credit link.
+const unsplashRef = "utm_source=chowk&utm_medium=referral";
 
 const conditionLabel: Record<string, string> = {
   new: "New",
@@ -36,7 +38,7 @@ const getListing = cache(async (id: string) => {
   const { data, error } = await supabasePublic
     .from("listings")
     .select(
-      "id, title, description, price_paise, price_type, kind, condition, attributes, status, locality, created_at, is_demo, demo_image_url, user_id, category:categories(slug, name, attribute_schema), city:cities(name), images:listing_images(path, thumb_path, position), seller:profiles!listings_user_id_fkey(display_name, is_business)",
+      "id, title, description, price_paise, price_type, kind, condition, attributes, status, locality, created_at, is_demo, demo_image_url, demo_photo_by, demo_photo_user, user_id, category:categories(slug, name, attribute_schema), city:cities(name), images:listing_images(path, thumb_path, position), seller:profiles!listings_user_id_fkey(display_name, is_business)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -63,12 +65,13 @@ function attributeRows(schema: Json, values: Json) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const listing = await getListing((await params).id);
   if (!listing) return {};
-  const image = photos(listing)[0];
   const description = `${priceLabel(listing.price_paise, listing.price_type)} in ${listing.locality ? `${listing.locality}, ` : ""}${listing.city?.name ?? "India"}. ${listing.description.slice(0, 120)}`;
   return {
     title: listing.title,
     description,
-    openGraph: { title: listing.title, description, images: image ? [image] : undefined },
+    // opengraph-image.tsx in this folder makes the share picture.
+    openGraph: { title: listing.title, description },
+    twitter: { card: "summary_large_image" },
   };
 }
 
@@ -146,7 +149,27 @@ export default async function ListingPage({ params }: Props) {
               <div className="grid aspect-[4/3] place-items-center rounded-card bg-surface-2 text-ink-2">No photos</div>
             )}
             {listing.is_demo && (
-              <p className="mt-2 text-xs text-ink-2">Demo ad. The photo comes from Unsplash. Nobody sells this item.</p>
+              <p className="mt-2 text-xs text-ink-2">
+                Demo ad. Nobody sells this item.
+                {listing.demo_photo_by && listing.demo_photo_user && (
+                  <>
+                    {" "}Photo by{" "}
+                    <a
+                      href={`https://unsplash.com/@${listing.demo_photo_user}?${unsplashRef}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-ink"
+                    >
+                      {listing.demo_photo_by}
+                    </a>{" "}
+                    on{" "}
+                    <a href={`https://unsplash.com/?${unsplashRef}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink">
+                      Unsplash
+                    </a>
+                    .
+                  </>
+                )}
+              </p>
             )}
           </section>
 

@@ -39,14 +39,14 @@ Germany's Kleinanzeigen shows another model: free ads, radius search, wanted ads
 | Anzeige aufgeben | Post in 2 steps: photos first (up to 12), then details. The draft saves on the device. |
 | Angebot and Gesuch | Offer and Wanted ads |
 | Festpreis, VB, Zu verschenken, Tauschen | Fixed, Negotiable, Free and Swap prices |
-| Categories and filters | 12 categories with their own fields, such as storage for phones and km, fuel and RC number for cars |
-| Umkreissuche | Radius search around a city or "Near me", nearest first |
+| Categories and filters | 12 categories with their own fields, such as storage for phones and km, fuel and RC number for cars. Filters for price, posted within, private or business seller, and ads with photos. |
+| Umkreissuche | Radius search around a city or "Near me", nearest first. Browse starts at your city. |
 | Suchauftrag | Saved searches with an alert when a new ad matches |
 | Merkliste | Watchlist with price drop alerts |
 | Nachrichten | Live chat per ad, quick replies, unread counts |
 | Preisvorschlag | Offers that the seller accepts or declines |
 | Reserviert, Verkauft, Pausieren | Reserve, pause, mark sold, renew after 60 days, move up |
-| Bewertungen and Abzeichen | Ratings after a confirmed deal, badges at 1, 3 and 6 raters, levels Newcomer, Trusted and Regular |
+| Bewertungen and Abzeichen | Ratings after a confirmed deal, badges at 1, 3 and 6 raters, levels Newcomer, Trusted and Regular. A higher level gives more active ads (20, 50, 100) and a shorter wait to move an ad up. |
 | Melden and Blockieren | Report ads and people, block people, admin report queue |
 
 ### For India
@@ -56,7 +56,7 @@ Germany's Kleinanzeigen shows another model: free ads, radius search, wanted ads
 - Prohibited item check at post time: weapons, drugs, protected wildlife, prescription medicine, fake goods.
 - Phone ads link to Sanchar Saathi for an IMEI check. Car and bike ads check the RC number format and link to Parivahan.
 - Location privacy: the database snaps every ad to the center of a square of about 500 m, and distances show rounded to 0.5 km.
-- WhatsApp share button on every ad.
+- WhatsApp share button on every ad, with a share picture that shows the photo, price, title and place.
 - Terms, a privacy policy for the DPDP Act 2023, a grievance officer page for the IT Rules 2021, data export and account delete.
 
 ### Low friction, no dark patterns

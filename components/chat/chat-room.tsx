@@ -89,7 +89,10 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: byConversation }, ({ new: row }) => {
         const m = row as ChatMessage;
-        setMessages((list) => list.map((x) => (x.id === m.id ? m : x)));
+        // An offer answer can arrive before the catch-up fetch has the offer, so add it if it is missing.
+        setMessages((list) =>
+          list.some((x) => x.id === m.id) ? list.map((x) => (x.id === m.id ? m : x)) : [...list, m].sort((a, b) => a.id - b.id),
+        );
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `id=eq.${conversationId}` }, ({ new: row }) => {
         if (!!row.buyer_met_at !== metRef.current.buyer || !!row.seller_met_at !== metRef.current.seller) router.refresh();

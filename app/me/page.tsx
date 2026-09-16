@@ -4,6 +4,7 @@ import { Bell, Heart, Settings } from "lucide-react";
 import { SignIn, SignOut } from "@/components/auth/sign-in";
 import { MyAds, type MyAd } from "@/components/listing/my-ads";
 import { buttonClass } from "@/components/ui/button";
+import { levelLabel, levelPerks } from "@/lib/badges";
 import { photoBase } from "@/lib/listings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,7 +30,7 @@ export default async function MePage() {
     );
   }
 
-  const [profile, listings] = await Promise.all([
+  const [profile, listings, stats] = await Promise.all([
     supabase.from("profiles").select("display_name, is_guest").eq("id", claims.sub).single(),
     supabase
       .from("listings")
@@ -38,9 +39,13 @@ export default async function MePage() {
       .neq("status", "removed")
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase.rpc("profile_public_stats", { p_user: claims.sub }),
   ]);
   if (profile.error) throw new Error(`profile read failed: ${profile.error.message}`);
   if (listings.error) throw new Error(`my ads read failed: ${listings.error.message}`);
+
+  const level = ((stats.data as { level?: string } | null)?.level ?? "newcomer") as keyof typeof levelPerks;
+  const perks = levelPerks[level] ?? levelPerks.newcomer;
 
   const ads: MyAd[] = listings.data.map((l) => {
     const cover = [...l.images].sort((a, b) => a.position - b.position)[0];
@@ -89,6 +94,17 @@ export default async function MePage() {
           Settings
         </Link>
       </nav>
+
+      <section aria-labelledby="level" className="space-y-1 rounded-card bg-surface p-4 ring-1 ring-line">
+        <h2 id="level" className="font-display text-lg font-bold">
+          Level: {levelLabel[level]}
+        </h2>
+        <p className="text-sm text-ink-2">
+          {ads.filter((a) => a.status === "active" && !a.expired).length} of {perks.activeAds} active ads. You can move an ad up every{" "}
+          {perks.bumpDays} days.
+        </p>
+        {perks.next && <p className="text-sm text-ink-2">{perks.next}</p>}
+      </section>
 
       <section aria-labelledby="my-ads" className="space-y-3">
         <h2 id="my-ads" className="text-xl font-bold">

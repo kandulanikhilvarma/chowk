@@ -213,6 +213,12 @@ begin
     raise exception 'FAIL: client read profiles.role' using errcode = 'CHW01';
   exception when insufficient_privilege then n := n + 1;
   end;
+  update public.listings set status = 'active' where id = lid2;
+  execute 'reset role';
+  if (select status from public.listings where id = lid2) <> 'removed' then
+    raise exception 'FAIL: owner reactivated a removed ad' using errcode = 'CHW01';
+  end if;
+  n := n + 1;
 
   execute 'reset role';
   update public.profiles set role = 'admin' where id = buyer;
@@ -262,6 +268,36 @@ begin
     raise exception 'FAIL: delete_account left the auth user' using errcode = 'CHW01';
   end if;
   n := n + 1;
+
+  -- Active ad limit for the buyer level (Trusted after the deal: 50). Rows are back-dated so the
+  -- 10-a-day limit does not fire first.
+  cnt := public.active_ad_limit(public.profile_public_stats(buyer) ->> 'level');
+  insert into public.listings (user_id, category_id, title, price_paise, price_type, city_id, location, created_at)
+  select buyer, cat, 'e2e_ limit ' || g, 1000, 'fixed', city,
+    extensions.st_setsrid(extensions.st_makepoint(78.48, 17.38), 4326)::extensions.geography, now() - interval '3 days'
+  from generate_series(1, cnt) g;
+  begin
+    insert into public.listings (user_id, category_id, title, price_paise, price_type, city_id, location, created_at)
+    values (buyer, cat, 'e2e_ limit over', 1000, 'fixed', city,
+      extensions.st_setsrid(extensions.st_makepoint(78.48, 17.38), 4326)::extensions.geography, now() - interval '3 days');
+    raise exception 'FAIL: posted one active ad over the level limit of %', cnt using errcode = 'CHW01';
+  exception when sqlstate 'P0001' then n := n + 1;
+  end;
+  update public.listings set status = 'paused' where user_id = buyer and title = 'e2e_ limit 1';
+  begin
+    update public.listings set status = 'active' where user_id = buyer and title = 'e2e_ limit 1';
+  exception when sqlstate 'P0001' then
+    raise exception 'FAIL: pausing and reactivating one ad hit the limit' using errcode = 'CHW01';
+  end;
+  n := n + 1;
+
+  select count(*) into cnt from public.search_listings(p_seller => 'business', p_limit => 60) s
+  join public.listings l on l.id = s.id join public.profiles p on p.id = l.user_id where not p.is_business;
+  if cnt <> 0 then raise exception 'FAIL: business filter returned private sellers' using errcode = 'CHW01'; end if;
+  select count(*) into cnt from public.search_listings(p_has_photos => true, p_limit => 60) s
+  where s.thumb_path is null and s.demo_image_url is null;
+  if cnt <> 0 then raise exception 'FAIL: photo filter returned ads without photos' using errcode = 'CHW01'; end if;
+  n := n + 2;
 
   raise exception 'RLS OK: % checks passed', n;
 end $$;
