@@ -46,7 +46,11 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
 
   const role = c.buyer_id === uid ? "buyer" : "seller";
   const otherId = role === "buyer" ? c.seller_id : c.buyer_id;
-  const { data: stats } = await supabase.rpc("profile_public_stats", { p_user: otherId });
+  const [{ data: stats }, block] = await Promise.all([
+    supabase.rpc("profile_public_stats", { p_user: otherId }),
+    supabase.from("blocks").select("blocked_id").eq("blocked_id", otherId).maybeSingle(),
+  ]);
+  if (block.error) throw new Error(`block read failed: ${block.error.message}`);
   const s = stats as Stats | null;
   const l = c.listing;
 
@@ -75,6 +79,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
       }
       met={{ buyer: !!c.buyer_met_at, seller: !!c.seller_met_at }}
       reviewed={!!deal.data?.reviews.some((r) => r.reviewer_id === uid)}
+      blocked={!!block.data}
     />
   );
 }

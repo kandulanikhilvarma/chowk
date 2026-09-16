@@ -761,6 +761,10 @@ export type Database = {
         Args: { p_conversation?: string; p_listing: string }
         Returns: string
       }
+      moderate_report: {
+        Args: { p_remove: boolean; p_report: number }
+        Returns: undefined
+      }
       price_hint: { Args: { p_category: number }; Returns: Json }
       profile_public_stats: { Args: { p_user: string }; Returns: Json }
       renew_listing: { Args: { p_listing: string }; Returns: string }

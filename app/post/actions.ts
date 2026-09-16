@@ -6,6 +6,7 @@ import { listingSchema } from "@/lib/listing-schema";
 import { getCities } from "@/lib/listings";
 import { findProhibited } from "@/lib/prohibited";
 import { createClient } from "@/lib/supabase/server";
+import { isRcNumber } from "@/lib/vehicle";
 
 export type PostResult = { id: string } | { error: string; fields?: Record<string, string[] | undefined> };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -48,6 +49,10 @@ async function prepare(supabase: Supabase, uid: string, input: unknown) {
       : [],
   );
   const attributes = Object.fromEntries(Object.entries(l.attributes).filter(([k, v]) => keys.has(k) && v !== ""));
+  const rc = attributes.rc_number;
+  if (typeof rc === "string" && !isRcNumber(rc)) {
+    return { error: "Enter the RC number like MH 12 AB 1234, or leave it empty." };
+  }
   const noPrice = l.priceType === "free" || l.priceType === "swap";
 
   return {

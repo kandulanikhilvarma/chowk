@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BadgeCheck, CalendarDays, MapPin, MessageCircle, Share2, ShieldAlert, Star } from "lucide-react";
 import { FavoriteButton } from "@/components/listing/favorite-button";
+import { ReportButton } from "@/components/safety/report-button";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { badgeLabel, levelLabel } from "@/lib/badges";
@@ -273,11 +274,36 @@ export default async function ListingPage({ params }: Props) {
               <li>Never pay an advance or a courier fee.</li>
               <li>You never scan a QR code to receive money.</li>
               <li>Never share an OTP with anyone.</li>
+              {listing.category?.slug === "mobiles" && (
+                <li>
+                  Check the IMEI number on{" "}
+                  <a href="https://sancharsaathi.gov.in" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    Sanchar Saathi
+                  </a>{" "}
+                  to see if the phone is reported stolen.
+                </li>
+              )}
+              {(listing.category?.slug === "vehicles" || listing.category?.slug === "bikes") && (
+                <li>
+                  Compare the RC with the ID of the seller, and check it on{" "}
+                  <a href="https://parivahan.gov.in" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    Parivahan
+                  </a>
+                  .
+                </li>
+              )}
             </ul>
             {listing.price_paise != null && listing.price_paise > 0 && (
               <p className="text-ink-2">Pay {formatPrice(listing.price_paise)} only after you have the item in your hands.</p>
             )}
           </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <ReportButton listingId={listing.id} />
+            <Link href="/safety" className="text-sm text-primary hover:underline">
+              More safety tips
+            </Link>
+          </div>
         </aside>
       </div>
     </article>

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowLeft, BadgeCheck, Handshake, IndianRupee, PartyPopper, Send, ShieldAlert, Star } from "lucide-react";
 import { AdStrip } from "@/components/chat/ad-strip";
+import { BlockButton } from "@/components/safety/block-button";
+import { ReportButton } from "@/components/safety/report-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -27,6 +29,7 @@ type Props = {
   deal: { id: string; buyerConfirmed: boolean; sellerConfirmed: boolean } | null;
   met: { buyer: boolean; seller: boolean };
   reviewed: boolean;
+  blocked: boolean;
 };
 
 const COLUMNS = "id, sender_id, kind, body, offer_paise, offer_state, created_at";
@@ -52,7 +55,7 @@ function problem(error: Failure) {
   return "That did not work. Try again.";
 }
 
-export function ChatRoom({ conversationId, me, role, other, listing, initialMessages, deal, met, reviewed }: Props) {
+export function ChatRoom({ conversationId, me, role, other, listing, initialMessages, deal, met, reviewed, blocked }: Props) {
   const router = useRouter();
   const [messages, setMessages] = useState(initialMessages);
   const [live, setLive] = useState(false);
@@ -176,6 +179,10 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
           <span className={`text-xs font-medium ${live ? "text-success" : "text-ink-2"}`}>{live ? "Live" : "Connecting"}</span>
         </div>
         <AdStrip {...listing} />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <ReportButton userId={other.id} label={`Report ${other.name}`} />
+          <BlockButton userId={other.id} name={other.name} blocked={blocked} />
+        </div>
       </header>
 
       <p className="mt-3 flex gap-2 rounded-field bg-danger-soft px-3 py-2 text-sm text-ink">
@@ -317,7 +324,7 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
         </p>
       )}
 
-      {open ? (
+      {open && !blocked ? (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -385,7 +392,9 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
           </div>
         </form>
       ) : (
-        <p className="border-t border-line py-4 text-center text-sm text-ink-2">This ad is closed. You cannot send new messages.</p>
+        <p className="border-t border-line py-4 text-center text-sm text-ink-2">
+          {blocked ? `You blocked ${other.name}. Unblock them to send messages.` : "This ad is closed. You cannot send new messages."}
+        </p>
       )}
     </div>
   );

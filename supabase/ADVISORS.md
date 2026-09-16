@@ -1,8 +1,8 @@
 # Supabase advisors and reviews
 
-Last run: 15 September 2026, after migration `20260915125212`.
+Last run: 16 September 2026, after migration `20260916083639`.
 
-## Security advisor: 0 errors, 14 warnings (all accepted)
+## Security advisor: 0 errors, warnings all accepted
 
 | Lint | Function | Why it stays |
 |---|---|---|
@@ -13,6 +13,9 @@ Last run: 15 September 2026, after migration `20260915125212`.
 | | `delete_account` | Deletes only the caller's own auth user. Rows cascade. |
 | | `is_blocked_between` | Used by the message insert policy. Since `20260915120049` it answers only when the caller is one of the two people. |
 | | `profile_public_stats` | Same as above. |
+| Anon and signed-in users can run SECURITY DEFINER | `is_admin` | Returns only whether the caller is an admin. It runs as definer because clients cannot read `profiles.role` since `20260916083639`. `listings_read` calls it for anon visitors, so anon keeps EXECUTE. |
+| Signed-in users can run SECURITY DEFINER | `moderate_report` | Raises 42501 unless `is_admin()` is true. |
+| Anonymous access policies | Tables used by guest accounts | Guest accounts are signed-in users with `is_anonymous`. Every policy still limits rows to `auth.uid()`. Guest reports and ratings do not count toward hides and badges. |
 | Leaked password protection disabled | Auth | Chowk has no password sign-in. Guests use anonymous sign-in and accounts use Google. |
 
 All SECURITY DEFINER functions set `search_path = ''`. Trigger functions have EXECUTE revoked from `public`, `anon` and `authenticated`.
@@ -35,4 +38,4 @@ All SECURITY DEFINER functions set `search_path = ''`. Trigger functions have EX
 
 ## RLS checks
 
-`supabase/tests/rls.sql` runs 37 checks inside one rolled-back block: self-promotion to admin, protected columns, forged notifications and system messages, reading or writing other people's chats, offers answered once, the UPI handoff, deals, reviews, blocks and block privacy, guest reports, photos of removed listings, storage folders, anonymous access, and keyword, radius and category search. Result on the last run: `RLS OK: 37 checks passed`.
+`supabase/tests/rls.sql` runs 40 checks inside one rolled-back block: self-promotion to admin, protected columns, forged notifications and system messages, reading or writing other people's chats, offers answered once, the UPI handoff, deals, reviews, blocks and block privacy, guest reports, moderation by non-admins, reading `profiles.role`, admin dismiss, photos of removed listings, storage folders, anonymous access, and keyword, radius and category search. Result on the last run: `RLS OK: 40 checks passed`.
