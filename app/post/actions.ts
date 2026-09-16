@@ -18,7 +18,7 @@ function failure(error: { code?: string; message: string }, context: string) {
   // P0001 is a rule from a trigger, such as the daily ad limit. Its message is written for people.
   if (error.code === "P0001") return { error: error.message };
   console.error(context, error);
-  return { error: "The ad could not be saved. Try again." };
+  return { error: "The ad did not save. Try again." };
 }
 
 // Shared by create and edit. Server Actions are reachable by direct POST, so nothing from the form is trusted.
@@ -107,7 +107,7 @@ export async function createListing(input: unknown): Promise<PostResult> {
     if (photoError) {
       console.error("listing_images insert failed", photoError);
       await supabase.from("listings").delete().eq("id", row.id);
-      return { error: "The photos could not be saved. Try again." };
+      return { error: "The photos did not save. Try again." };
     }
   }
 
@@ -147,7 +147,7 @@ export async function updateListing(id: string, input: unknown): Promise<PostRes
     if (error) {
       console.error("listing_images insert failed", id, error);
       if (old.data.length) await supabase.from("listing_images").insert(old.data.map((p) => ({ ...p, listing_id: id })));
-      return { error: "The photos could not be saved. Your old photos stay." };
+      return { error: "The new photos did not save. Your old photos stay." };
     }
   }
 

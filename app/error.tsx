@@ -12,7 +12,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
   }, [error]);
 
   return (
-    <EmptyState icon={TriangleAlert} title="Something went wrong" action={<Button onClick={() => retry()}>Try again</Button>}>
+    <EmptyState heading="h1" icon={TriangleAlert} title="Something went wrong" action={<Button onClick={() => retry()}>Try again</Button>}>
       Check your connection, then try again.
     </EmptyState>
   );

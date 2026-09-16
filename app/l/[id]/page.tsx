@@ -225,7 +225,7 @@ export default async function ListingPage({ params }: Props) {
           )}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <section aria-labelledby="seller" className="space-y-3 rounded-card bg-surface p-4 ring-1 ring-line">
             <h2 id="seller" className="sr-only">
               Seller
@@ -328,7 +328,7 @@ export default async function ListingPage({ params }: Props) {
               More safety tips
             </Link>
           </div>
-        </aside>
+        </div>
       </div>
     </article>
   );

@@ -21,9 +21,9 @@ A free marketplace for India where anyone can sell, give away, swap or ask for t
 
 ## Why Chowk
 
-India has general classifieds and many vertical apps. People still meet the same problems: fake buyers, "courier fee" and UPI QR scams, spam, and city-wide results that ignore how far away an item is.
+India has general classifieds and many vertical apps. People still meet the same problems. Fake buyers, "courier fee" and UPI QR scams are common. City-wide results ignore how far away an item is.
 
-Germany's Kleinanzeigen shows another model: free ads, radius search, wanted ads, give-away culture, saved-search alerts, and trust badges that come only from real deals. Chowk brings that model to India and adds safety features for Indian payment scams.
+Germany's Kleinanzeigen shows another model. It has free ads, radius search, wanted ads and saved-search alerts. People give things away, and trust badges come only from real deals. Chowk brings that model to India and adds safety features for Indian payment scams.
 
 - **Free for everyone.** No listing fees, no paid boosts, no commission. Chowk never holds money.
 - **Near you.** Radius search from 2 to 100 km around a city or your location, sorted nearest first.
@@ -39,7 +39,7 @@ Germany's Kleinanzeigen shows another model: free ads, radius search, wanted ads
 | Anzeige aufgeben | Post in 2 steps: photos first (up to 12), then details. The draft saves on the device. |
 | Angebot and Gesuch | Offer and Wanted ads |
 | Festpreis, VB, Zu verschenken, Tauschen | Fixed, Negotiable, Free and Swap prices |
-| Categories and filters | 12 categories with their own fields, such as storage for phones and km, fuel and RC number for cars. Filters for price, posted within, private or business seller, and ads with photos. |
+| Categories and filters | 12 categories with their own fields. Phones have storage. Cars have km, fuel and RC number. Filters for price, posted within, private or business seller, and ads with photos. |
 | Umkreissuche | Radius search around a city or "Near me", nearest first. Browse starts at your city. |
 | Suchauftrag | Saved searches with an alert when a new ad matches |
 | Merkliste | Watchlist with price drop alerts |
@@ -52,17 +52,17 @@ Germany's Kleinanzeigen shows another model: free ads, radius search, wanted ads
 ### For India
 
 - Prices in rupees with Indian grouping (₹1,45,000, ₹4.5 L, ₹1.2 Cr).
-- Scam detector in chat: OTP requests, "scan QR to receive money", courier fees, advance payments, UPI collect requests and moves to WhatsApp.
+- Scam detector in chat. It warns about OTP requests, "scan QR to receive money" and courier fees. It also warns about advance payments, UPI collect requests and moves to WhatsApp.
 - Prohibited item check at post time: weapons, drugs, protected wildlife, prescription medicine, fake goods.
 - Phone ads link to Sanchar Saathi for an IMEI check. Car and bike ads check the RC number format and link to Parivahan.
-- Location privacy: the database snaps every ad to the center of a square of about 500 m, and distances show rounded to 0.5 km.
+- Place privacy. The database moves every ad to the center of a square of about 500 m. Distances show rounded to 0.5 km.
 - WhatsApp share button on every ad, with a share picture that shows the photo, price, title and place.
-- Terms, a privacy policy for the DPDP Act 2023, a grievance officer page for the IT Rules 2021, data export and account delete.
+- Terms and a privacy policy for the DPDP Act 2023. A grievance officer page for the IT Rules 2021. Data export and account delete.
 
 ### Low friction, no dark patterns
 
 - Browse without an account. The first post, chat or save starts a guest account, and Google keeps it later.
-- Sell is the center tab. A strength meter, a category suggestion from the title and a price hint from similar ads help a first ad go online in about a minute.
+- Sell is the center tab. A strength meter, a category suggestion and a price hint help. A first ad goes online in about a minute.
 - Safety nudges show at the moment of risk: the first chat with a stranger, and payment words in a message.
 - No streaks, no fake urgency, no paid placement.
 
@@ -221,8 +221,8 @@ stateDiagram-v2
 ## Security model
 
 - **Row level security on every table.** Pages and server actions query as the user. The app has no service role key.
-- **Column grants.** Clients can write only the columns a person may change. `report_count`, `bumped_at`, `expires_at`, deal flags and `profiles.role` change only inside database functions.
-- **Definer functions check the caller.** Each one sets `search_path = ''` and checks that the caller owns the ad or is part of the chat or deal. Trigger functions cannot be called from the API.
+- **Column grants.** Clients can write only the columns that a person can change. `report_count`, `bumped_at`, `expires_at`, deal flags and `profiles.role` change only inside database functions.
+- **Definer functions check the caller.** Each one sets `search_path = ''` and checks that the caller owns the ad or is part of the chat or deal. The API cannot call trigger functions.
 - **Chats.** Only the buyer and the seller read a chat. A block stops messages both ways. Clients cannot post system messages or notifications.
 - **UPI handoff.** `handoff_upi()` returns the seller's UPI ID only to the buyer, and only after both tapped "We met in person".
 - **Abuse limits.** 10 ads and 20 new chats per account per day, with a per-user lock. Guest reports do not hide ads.

@@ -21,7 +21,7 @@ export function ReportButton({ listingId, userId, label = "Report this ad" }: { 
   const submit = () =>
     startTransition(async () => {
       setState({});
-      if (!(await ensureSession())) return setState({ error: "We could not start a guest account. Try again." });
+      if (!(await ensureSession())) return setState({ error: "The guest account did not start. Try again." });
       const { error } = await createClient()
         .from("reports")
         .insert({ listing_id: listingId ?? null, reported_user_id: userId ?? null, reason, details: details.trim() || null });
@@ -38,7 +38,7 @@ export function ReportButton({ listingId, userId, label = "Report this ad" }: { 
       <button
         type="button"
         onClick={() => dialog.current?.showModal()}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-danger hover:underline"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-danger hover:underline"
       >
         <Flag className="size-4" aria-hidden />
         {label}

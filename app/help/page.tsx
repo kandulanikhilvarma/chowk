@@ -32,7 +32,7 @@ const faqs: [string, ReactNode][] = [
   ["How do saved searches work?", "On a search page, tap Save this search. You get a notification when a new ad matches it."],
   [
     "How do I pay?",
-    "Pay only when you meet and have the item. After you both tap We met in person, the buyer sees a Pay with UPI button if the seller added a UPI ID.",
+    "Pay only when you meet and have the item. After you both tap We met in person, the buyer sees a Pay with UPI button. The button shows only if the seller added a UPI ID.",
   ],
   ["How do I report or block someone?", "Tap Report on an ad or a profile. In a chat you can report and block the other person. Blocked people cannot send you messages."],
   [

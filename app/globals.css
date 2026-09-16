@@ -109,6 +109,23 @@
     }
   }
 
+  /* Result notices fade in when they appear. Reduced motion keeps the fade and drops the rise. */
+  [role="status"] {
+    transition:
+      opacity 200ms var(--ease-out),
+      translate 200ms var(--ease-out);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [role="status"] {
+      @starting-style {
+        translate: 0 4px;
+      }
+    }
+  }
+
   /* Theme-dependent icons (the toggle shows the theme you switch to). */
   .dark-only {
     display: none;

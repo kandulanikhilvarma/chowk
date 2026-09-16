@@ -40,8 +40,8 @@ export default function GrievancePage() {
         <li>We confirm that we received your complaint within 24 hours.</li>
         <li>We act on your complaint within 15 days.</li>
         <li>
-          If content shows a person in a sexual way without consent, or pretends to be a person, we remove it within 24 hours of the
-          complaint.
+          If content shows a person in a sexual way without consent, we remove it within 24 hours of the complaint. The same
+          applies to content that pretends to be a person.
         </li>
       </ul>
 

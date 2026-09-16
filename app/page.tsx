@@ -53,6 +53,7 @@ export default async function Home() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 pt-4 md:pt-8">
+      {/* Brand indigo in both themes: the dark --primary is too light for white text. */}
       <section className="relative isolate overflow-hidden rounded-card bg-[#2B3A8C] px-5 py-8 text-white md:px-10 md:py-14">
         <svg
           aria-hidden

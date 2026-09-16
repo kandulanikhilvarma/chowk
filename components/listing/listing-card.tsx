@@ -34,7 +34,7 @@ export function ListingCard({ listing: l, priority = false }: { listing: Listing
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
             decoding="async"
-            className="size-full object-cover transition-transform duration-200 ease-(--ease-out) group-hover:scale-[1.03]"
+            className="size-full object-cover transition-transform duration-200 ease-(--ease-out) motion-safe:group-hover:scale-[1.03]"
           />
         ) : (
           <div className="grid size-full place-items-center text-ink-2">

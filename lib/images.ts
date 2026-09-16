@@ -38,6 +38,6 @@ export async function resizeImage(file: File, max: number) {
 
   let blob = await encode(canvas, "image/webp");
   if (blob?.type !== "image/webp") blob = await encode(canvas, "image/jpeg");
-  if (!blob) throw new PhotoError("This photo could not be prepared. Try a different photo.");
+  if (!blob) throw new PhotoError("This photo did not open. Try a different photo.");
   return { blob, ...size };
 }
