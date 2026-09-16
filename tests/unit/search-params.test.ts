@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PAGE_SIZE, toSearchArgs } from "../../lib/search-params";
+import { cityFromHeader, PAGE_SIZE, toSearchArgs } from "../../lib/search-params";
 
 const hyderabad = { lat: 17.385, lng: 78.4867 };
 
@@ -14,6 +14,9 @@ describe("toSearchArgs", () => {
         p_kind: undefined,
         p_min_paise: undefined,
         p_max_paise: undefined,
+        p_days: undefined,
+        p_seller: undefined,
+        p_has_photos: undefined,
         p_lat: undefined,
         p_lng: undefined,
         p_radius_km: undefined,
@@ -77,5 +80,39 @@ describe("toSearchArgs", () => {
 
   it("falls back from nearest to newest without an origin", () => {
     expect(toSearchArgs({ sort: "nearest" }).args.p_sort).toBe("newest");
+  });
+});
+
+describe("new filters", () => {
+  it("keeps only allowed days, seller types and the photos flag", () => {
+    expect(toSearchArgs({ days: "7", seller: "business", photos: "1" }).args).toMatchObject({
+      p_days: 7,
+      p_seller: "business",
+      p_has_photos: true,
+    });
+    expect(toSearchArgs({ days: "365", seller: "admin", photos: "yes" }).args).toMatchObject({
+      p_days: undefined,
+      p_seller: undefined,
+      p_has_photos: undefined,
+    });
+  });
+});
+
+describe("cityFromHeader", () => {
+  const cities = [
+    { slug: "delhi", name: "Delhi" },
+    { slug: "bengaluru", name: "Bengaluru" },
+  ];
+
+  it("matches encoded names and old names", () => {
+    expect(cityFromHeader("New%20Delhi", cities)?.slug).toBe("delhi");
+    expect(cityFromHeader("Bangalore", cities)?.slug).toBe("bengaluru");
+    expect(cityFromHeader("BENGALURU", cities)?.slug).toBe("bengaluru");
+  });
+
+  it("returns nothing for a missing, unknown or broken header", () => {
+    expect(cityFromHeader(null, cities)).toBeUndefined();
+    expect(cityFromHeader("London", cities)).toBeUndefined();
+    expect(cityFromHeader("%E0%A4", cities)).toBeUndefined();
   });
 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallButton } from "./install-button";
 
 const links = [
   { href: "/safety", label: "Safety" },
@@ -25,6 +26,8 @@ export function Footer() {
             ))}
           </ul>
         </nav>
+        {/* In the root layout, so it is mounted before the browser sends its one install event. */}
+        <InstallButton className="md:ml-auto" />
       </div>
     </footer>
   );

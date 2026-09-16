@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { MapPin, SearchX } from "lucide-react";
 import { ListingCard } from "@/components/listing/listing-card";
@@ -5,14 +6,14 @@ import { NearMe } from "@/components/listing/near-me";
 import { SaveSearchButton } from "@/components/listing/save-search-button";
 import { buttonClass } from "@/components/ui/button";
 import { getCities, searchListings } from "@/lib/listings";
-import { PAGE_SIZE, RADII, toSearchArgs, type RawParams } from "@/lib/search-params";
+import { cityFromHeader, PAGE_SIZE, RADII, toSearchArgs, type RawParams } from "@/lib/search-params";
 
 type Category = { slug: string; name: string };
 
 const field = "h-11 w-full rounded-field border border-line bg-surface px-3 text-[15px] text-ink";
 
 export async function SearchView({
-  raw,
+  raw: urlRaw,
   path,
   title,
   category,
@@ -24,11 +25,26 @@ export async function SearchView({
   category?: string;
   categories: Category[];
 }) {
-  const value = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : "");
   const cities = await getCities();
-  const city = cities.find((c) => c.slug === value("city"));
-  const { args, page } = toSearchArgs(raw, category, city && { lat: city.lat, lng: city.lng });
-  const rows = await searchListings(args);
+  // A plain browse (no query, no filters) starts at the visitor city from Vercel. Any submitted form
+  // sends city, even "Anywhere in India" as city="", so a search the person shaped is never changed.
+  const guessed =
+    Object.keys(urlRaw).length === 0
+      ? cityFromHeader((await headers()).get("x-vercel-ip-city"), cities)
+      : undefined;
+  let raw = guessed ? { ...urlRaw, city: guessed.slug } : urlRaw;
+  const value = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : "");
+  let city = cities.find((c) => c.slug === value("city"));
+  let { args, page } = toSearchArgs(raw, category, city && { lat: city.lat, lng: city.lng });
+  let rows = await searchListings(args);
+  // An empty guessed city is a bad first look. Show all of India and say so.
+  const guessEmpty = guessed && rows.length === 0 && page === 1;
+  if (guessEmpty) {
+    raw = urlRaw;
+    city = undefined;
+    ({ args, page } = toSearchArgs(raw, category));
+    rows = await searchListings(args);
+  }
   const listings = rows.slice(0, PAGE_SIZE);
   const hasNext = rows.length > PAGE_SIZE;
   const nearBrowser = !city && args.p_lat !== undefined;
@@ -120,12 +136,33 @@ export async function SearchView({
           </select>
         </label>
         <label>
+          <span className="sr-only">Posted within</span>
+          <select name="days" defaultValue={value("days")} className={field}>
+            <option value="">Any time</option>
+            <option value="1">Last 24 hours</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Seller</span>
+          <select name="seller" defaultValue={value("seller")} className={field}>
+            <option value="">All sellers</option>
+            <option value="private">Private sellers</option>
+            <option value="business">Businesses</option>
+          </select>
+        </label>
+        <label>
           <span className="sr-only">Minimum price in rupees</span>
           <input name="min" type="number" min={0} inputMode="numeric" defaultValue={value("min")} placeholder="Min ₹" className={field} />
         </label>
         <label>
           <span className="sr-only">Maximum price in rupees</span>
           <input name="max" type="number" min={0} inputMode="numeric" defaultValue={value("max")} placeholder="Max ₹" className={field} />
+        </label>
+        <label className="flex h-11 items-center gap-2 rounded-field border border-line bg-surface px-3 text-[15px] text-ink">
+          <input type="checkbox" name="photos" value="1" defaultChecked={value("photos") === "1"} className="size-5 accent-primary" />
+          With photos
         </label>
         <button type="submit" className={buttonClass({ className: "col-span-2 md:col-span-1" })}>
           Show results
@@ -137,6 +174,12 @@ export async function SearchView({
           <p className="flex items-center gap-1 text-sm text-ink-2">
             <MapPin className="size-4" aria-hidden />
             Ads within {args.p_radius_km} km of {city ? city.name : "your location"}
+            {guessed && " (from your internet connection)"}
+          </p>
+        ) : guessEmpty ? (
+          <p className="flex items-center gap-1 text-sm text-ink-2">
+            <MapPin className="size-4" aria-hidden />
+            No ads near {guessed.name} yet. Showing ads from all of India.
           </p>
         ) : (
           <span />

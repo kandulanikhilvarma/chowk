@@ -8,6 +8,8 @@ export const PRICE_TYPES = ["fixed", "negotiable", "free", "swap"] as const;
 export const KINDS = ["offer", "wanted"] as const;
 export const SORTS = ["newest", "nearest", "price_asc", "price_desc", "relevance"] as const;
 export const RADII = [2, 5, 10, 25, 50, 100] as const;
+export const DAYS = [1, 7, 30] as const;
+export const SELLERS = ["private", "business"] as const;
 const DEFAULT_RADIUS = 25;
 
 function first(value: string | string[] | undefined) {
@@ -60,6 +62,9 @@ export function toSearchArgs(
       p_kind: oneOf(get("kind"), KINDS),
       p_min_paise: rupeesToPaise(get("min")),
       p_max_paise: rupeesToPaise(get("max")),
+      p_days: DAYS.find((d) => d === Number(get("days"))),
+      p_seller: oneOf(get("seller"), SELLERS),
+      p_has_photos: get("photos") === "1" || undefined,
       p_lat: origin?.lat,
       p_lng: origin?.lng,
       p_radius_km: radius,
@@ -68,4 +73,34 @@ export function toSearchArgs(
       p_offset: (page - 1) * PAGE_SIZE,
     },
   };
+}
+
+// Vercel sends the visitor city URL-encoded (for example "New%20Delhi"). Old names still in common use map to the list names.
+const CITY_ALIASES: Record<string, string> = {
+  bangalore: "bengaluru",
+  bombay: "mumbai",
+  "new delhi": "delhi",
+  gurgaon: "gurugram",
+  calcutta: "kolkata",
+  madras: "chennai",
+  mysore: "mysuru",
+  mangalore: "mangaluru",
+  trivandrum: "thiruvananthapuram",
+  cochin: "kochi",
+  allahabad: "prayagraj",
+  pondicherry: "puducherry",
+  vizag: "visakhapatnam",
+  baroda: "vadodara",
+};
+
+export function cityFromHeader<T extends { slug: string; name: string }>(header: string | null, cities: T[]): T | undefined {
+  if (!header) return undefined;
+  let name: string;
+  try {
+    name = decodeURIComponent(header).trim().toLowerCase();
+  } catch {
+    return undefined;
+  }
+  const wanted = CITY_ALIASES[name] ?? name;
+  return cities.find((c) => c.slug === wanted || c.name.toLowerCase() === wanted);
 }

@@ -125,6 +125,9 @@ export async function saveSearch(raw: Record<string, string>, routeCategory?: st
       lat: args.p_lat,
       lng: args.p_lng,
       radius_km: args.p_radius_km,
+      days: args.p_days,
+      seller: args.p_seller,
+      photos: args.p_has_photos,
     },
   });
   if (error) return failure(error, "saveSearch");

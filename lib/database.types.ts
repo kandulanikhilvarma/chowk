@@ -328,6 +328,8 @@ export type Database = {
           created_at: string
           currency: string
           demo_image_url: string | null
+          demo_photo_by: string | null
+          demo_photo_user: string | null
           description: string
           expires_at: string
           favorites_count: number
@@ -357,6 +359,8 @@ export type Database = {
           created_at?: string
           currency?: string
           demo_image_url?: string | null
+          demo_photo_by?: string | null
+          demo_photo_user?: string | null
           description?: string
           expires_at?: string
           favorites_count?: number
@@ -386,6 +390,8 @@ export type Database = {
           created_at?: string
           currency?: string
           demo_image_url?: string | null
+          demo_photo_by?: string | null
+          demo_photo_user?: string | null
           description?: string
           expires_at?: string
           favorites_count?: number
@@ -738,6 +744,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      active_ad_limit: { Args: { level: string }; Returns: number }
       bump_listing: { Args: { p_listing: string }; Returns: string }
       confirm_deal: { Args: { p_deal: string }; Returns: undefined }
       delete_account: { Args: never; Returns: undefined }
@@ -781,6 +788,7 @@ export type Database = {
           p_category?: string
           p_condition?: Database["public"]["Enums"]["item_condition"]
           p_days?: number
+          p_has_photos?: boolean
           p_kind?: Database["public"]["Enums"]["listing_kind"]
           p_lat?: number
           p_limit?: number
@@ -791,6 +799,7 @@ export type Database = {
           p_price_type?: Database["public"]["Enums"]["price_type"]
           p_q?: string
           p_radius_km?: number
+          p_seller?: string
           p_sort?: string
         }
         Returns: {
