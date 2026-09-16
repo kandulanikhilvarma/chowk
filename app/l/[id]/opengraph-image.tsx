@@ -40,16 +40,18 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         .eq("id", id)
         .maybeSingle()
     : { data: null };
+  // An unknown id gets no outbound font or photo fetch.
+  if (!listing) return new Response("Not found", { status: 404 });
 
-  const title = listing?.title ?? "Buy and sell near you";
-  const price = listing ? priceLabel(listing.price_paise, listing.price_type) : "Free for everyone";
-  const place = listing ? [listing.locality, listing.city?.name].filter(Boolean).join(", ") : "India";
-  const cover = listing && [...listing.images].sort((a, b) => a.position - b.position)[0];
+  const title = listing.title;
+  const price = priceLabel(listing.price_paise, listing.price_type);
+  const place = [listing.locality, listing.city?.name].filter(Boolean).join(", ");
+  const cover = [...listing.images].sort((a, b) => a.position - b.position)[0];
   const src = cover
     ? photoBase + cover.path
-    : listing?.demo_image_url?.replace("auto=format", "fm=jpg").replace("w=800&h=600", "w=420&h=420");
+    : listing.demo_image_url?.replace("auto=format", "fm=jpg").replace("w=800&h=600", "w=420&h=420");
   const image = await photo(src).catch(() => null);
-  const label = listing?.kind === "wanted" ? "WANTED" : listing?.is_demo ? "DEMO AD" : "ON CHOWK";
+  const label = listing.kind === "wanted" ? "WANTED" : listing.is_demo ? "DEMO AD" : "ON CHOWK";
 
   const text = `${title}${price}${place}${label}chowkSell it. Find it. Around the corner.`;
   const [display, body] = await Promise.all([font("Anek Latin", 800, text), font("Inter", 500, text)]).catch(() => [null, null]);
@@ -78,7 +80,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               fontSize: 48,
               fontWeight: 800,
               lineHeight: 1,
-              color: listing?.price_type === "free" ? "#1F8A5B" : "#16182B",
+              color: listing.price_type === "free" ? "#1F8A5B" : "#16182B",
             }}
           >
             {price}
