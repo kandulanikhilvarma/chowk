@@ -18,7 +18,8 @@ export type ListingCardData = {
   isDemo?: boolean;
 };
 
-export function ListingCard({ listing: l }: { listing: ListingCardData }) {
+// priority: the first cards on screen load at once, because one of them is usually the largest paint.
+export function ListingCard({ listing: l, priority = false }: { listing: ListingCardData; priority?: boolean }) {
   return (
     <Link
       href={`/l/${l.id}`}
@@ -30,7 +31,8 @@ export function ListingCard({ listing: l }: { listing: ListingCardData }) {
           <img
             src={l.imageUrl}
             alt=""
-            loading="lazy"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
             decoding="async"
             className="size-full object-cover transition-transform duration-200 ease-(--ease-out) group-hover:scale-[1.03]"
           />
