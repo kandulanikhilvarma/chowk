@@ -94,8 +94,26 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `id=eq.${conversationId}` }, ({ new: row }) => {
         if (!!row.buyer_met_at !== metRef.current.buyer || !!row.seller_met_at !== metRef.current.seller) router.refresh();
       })
-      // Send stays off until the channel is live, so no reply can arrive unseen.
-      .subscribe((status) => setLive(status === "SUBSCRIBED"));
+      // Send stays off until the channel is live. Each time it goes live (first join or a reconnect),
+      // fetch the chat again: inserts sent while the channel was down never arrive as events.
+      .subscribe((status) => {
+        setLive(status === "SUBSCRIBED");
+        if (status !== "SUBSCRIBED") return;
+        supabase
+          .from("messages")
+          .select(COLUMNS)
+          .eq("conversation_id", conversationId)
+          .order("created_at")
+          .limit(500)
+          .then(({ data, error }) => {
+            if (error) return console.error("chat catch-up failed", error);
+            setMessages((list) => {
+              const byId = new Map(list.map((m) => [m.id, m]));
+              for (const m of data) byId.set(m.id, m);
+              return [...byId.values()].sort((a, b) => a.id - b.id);
+            });
+          });
+      });
 
     markRead();
     return () => {
