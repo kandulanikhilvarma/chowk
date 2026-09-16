@@ -213,6 +213,12 @@ begin
     raise exception 'FAIL: client read profiles.role' using errcode = 'CHW01';
   exception when insufficient_privilege then n := n + 1;
   end;
+  update public.listings set status = 'active' where id = lid2;
+  execute 'reset role';
+  if (select status from public.listings where id = lid2) <> 'removed' then
+    raise exception 'FAIL: owner reactivated a removed ad' using errcode = 'CHW01';
+  end if;
+  n := n + 1;
 
   execute 'reset role';
   update public.profiles set role = 'admin' where id = buyer;
