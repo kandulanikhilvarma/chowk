@@ -49,14 +49,16 @@ test("chat, offer, deal and ratings between two people", async ({ page: seller, 
     // Live both ways.
     await seller.getByRole("button", { name: "Yes, it is still available." }).click();
     await seller.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(buyer.getByText("Yes, it is still available.")).toBeVisible();
+    // Realtime delivery over the internet can take a few seconds.
+    const live = { timeout: 15_000 };
+    await expect(buyer.getByText("Yes, it is still available.")).toBeVisible(live);
 
     await buyer.getByRole("button", { name: "Make an offer" }).click();
     await buyer.getByLabel("Offer in rupees").fill("4500");
     await buyer.getByRole("button", { name: "Send offer" }).click();
-    await expect(seller.getByText("₹4,500")).toBeVisible();
+    await expect(seller.getByText("₹4,500")).toBeVisible(live);
     await seller.getByRole("button", { name: "Accept", exact: true }).click();
-    await expect(buyer.getByText(/Offer accepted/)).toBeVisible();
+    await expect(buyer.getByText(/Offer accepted/)).toBeVisible(live);
 
     await seller.getByRole("button", { name: /Mark sold to/ }).click();
     await expect(seller.getByText(/Waiting for .* to confirm the deal/)).toBeVisible();
