@@ -56,6 +56,8 @@ test("sign-in callback never redirects off site", async ({ page }) => {
 });
 
 test("a plain browse starts at the visitor city and a search does not", async ({ browser }) => {
+  // Vercel replaces this header with the real one, so the check runs only against a local server.
+  test.skip(!!process.env.E2E_BASE_URL?.startsWith("https://"), "Vercel sets x-vercel-ip-city itself");
   const context = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-city": "Bangalore" } });
   const page = await context.newPage();
   await page.goto("/s");
