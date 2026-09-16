@@ -23,7 +23,7 @@ export function StartChat({ listingId, wanted }: { listingId: string; wanted: bo
     if (!body) return setError("Write a message first.");
     startTransition(async () => {
       setError(null);
-      if (!(await ensureSession())) return setError("We could not start a guest account. Try again.");
+      if (!(await ensureSession())) return setError("The guest account did not start. Try again.");
       const { data, error } = await createClient().rpc("start_conversation", { p_listing: listingId, p_body: body });
       if (error) {
         // P0001 messages come from database rules (daily limit, blocked, own ad) and are written for people.

@@ -36,7 +36,7 @@ export default function TermsPage() {
         <li>Use true photos, a true description and a true price.</li>
         <li>Choose the correct category. Do not post the same item many times.</li>
         <li>You can post up to 10 ads a day. An ad stays online for 60 days, and you can renew it for free.</li>
-        <li>You give Chowk permission to show your ads, photos and approximate location to other people, so that they can find your item.</li>
+        <li>You give Chowk permission to show your ads, photos and approximate location to other people. This lets them find your item.</li>
       </ul>
 
       <h2>4. Items you must not post</h2>

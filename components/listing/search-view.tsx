@@ -61,7 +61,7 @@ export async function SearchView({
     <div className="mx-auto max-w-6xl space-y-6 px-4 pt-4 md:pt-8">
       <h1 className="text-2xl font-bold md:text-3xl">{title}</h1>
 
-      <form action={path} role="search" className="grid grid-cols-2 gap-2 md:grid-cols-6">
+      <form action={path} role="search" className="grid grid-cols-2 gap-2 md:grid-cols-4">
         {nearBrowser && (
           <>
             <input type="hidden" name="lat" value={value("lat")} />
@@ -164,7 +164,8 @@ export async function SearchView({
           <input type="checkbox" name="photos" value="1" defaultChecked={value("photos") === "1"} className="size-5 accent-primary" />
           With photos
         </label>
-        <button type="submit" className={buttonClass({ className: "col-span-2 md:col-span-1" })}>
+        {/* The span fills the last row: a category page has one select less. */}
+        <button type="submit" className={buttonClass({ className: category ? "col-span-2 md:col-span-3" : "col-span-2" })}>
           Show results
         </button>
       </form>

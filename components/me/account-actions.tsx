@@ -22,10 +22,10 @@ export function AccountActions({ uid }: { uid: string }) {
       // The cap stops a loop if a remove call reports success but keeps the files.
       for (let round = 0; round < 50; round++) {
         const { data: files, error: listError } = await supabase.storage.from(BUCKET).list(uid, { limit: 100 });
-        if (listError) return setError("Your photos could not be deleted. Try again.");
+        if (listError) return setError("Your photos did not delete. Try again.");
         if (!files.length) break;
         const { error: removeError } = await supabase.storage.from(BUCKET).remove(files.map((f) => `${uid}/${f.name}`));
-        if (removeError) return setError("Your photos could not be deleted. Try again.");
+        if (removeError) return setError("Your photos did not delete. Try again.");
       }
 
       const { error } = await supabase.rpc("delete_account");

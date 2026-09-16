@@ -158,7 +158,7 @@ export function PostForm({
         const photo: Photo = { id: crypto.randomUUID(), full, thumb, preview: URL.createObjectURL(thumb.blob) };
         setPhotos((p) => (p.length < MAX_PHOTOS ? [...p, photo] : p));
       } catch (e) {
-        setPhotoError(e instanceof PhotoError ? e.message : "This photo could not be added. Try a different photo.");
+        setPhotoError(e instanceof PhotoError ? e.message : "This photo did not open. Try a different photo.");
       }
     }
   }
@@ -317,7 +317,10 @@ export function PostForm({
           aria-valuemax={100}
           className="h-2 overflow-hidden rounded-full bg-surface-2"
         >
-          <div className="h-full rounded-full bg-success transition-[width]" style={{ width: `${strength.percent}%` }} />
+          <div
+            className="h-full origin-left rounded-full bg-success motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-(--ease-out)"
+            style={{ transform: `scaleX(${strength.percent / 100})` }}
+          />
         </div>
         {strength.tip && (
           <p className="flex items-start gap-2 text-sm text-ink-2">

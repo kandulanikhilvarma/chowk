@@ -34,7 +34,7 @@ export function BlockButton({ userId, name, blocked }: { userId: string; name: s
         type="button"
         onClick={toggle}
         disabled={pending}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-2 hover:text-danger hover:underline"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-2 hover:text-danger hover:underline"
       >
         <Ban className="size-4" aria-hidden />
         {blocked ? `Unblock ${name}` : `Block ${name}`}
