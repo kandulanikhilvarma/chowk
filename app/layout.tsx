@@ -31,6 +31,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en-IN" suppressHydrationWarning className={`${inter.variable} ${anek.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Photos load from these hosts; opening the connection early cuts the largest paint. */}
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
       </head>
       <body className="min-h-dvh">
         <a

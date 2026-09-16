@@ -136,6 +136,7 @@ export default async function ListingPage({ params }: Props) {
                       src={src}
                       alt={`${listing.title}, photo ${i + 1} of ${gallery.length}`}
                       loading={i === 0 ? "eager" : "lazy"}
+                      fetchPriority={i === 0 ? "high" : "auto"}
                       className="size-full object-cover"
                     />
                   </li>

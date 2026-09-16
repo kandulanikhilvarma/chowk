@@ -159,13 +159,16 @@ export async function SearchView({
           </Link>
         </div>
       ) : (
+        <>
+        <h2 className="sr-only">Ads</h2>
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
-          {listings.map((listing) => (
+          {listings.map((listing, i) => (
             <li key={listing.id}>
-              <ListingCard listing={listing} />
+              <ListingCard listing={listing} priority={i < 4} />
             </li>
           ))}
         </ul>
+        </>
       )}
 
       {(page > 1 || hasNext) && (
