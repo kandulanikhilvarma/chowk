@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { hasTestAccounts, signIn } from "./auth";
 
 // Writes to the shared database, so it runs only on request: E2E_WRITES=1 npm run e2e
-// Needs anonymous sign-ins turned on in Supabase. Rows use the e2e_ title prefix and are deleted at the end.
-// ponytail: the guest user stays behind. Remove it with the account delete flow once Phase 6 ships it.
-test.skip(!process.env.E2E_WRITES, "set E2E_WRITES=1 to run tests that write data");
+// Signs in as the seller test account. Rows use the e2e_ title prefix and are deleted at the end.
+test.skip(!process.env.E2E_WRITES || !hasTestAccounts, "set E2E_WRITES=1 and the E2E_SELLER_ and E2E_BUYER_ account details");
+test.beforeEach(({ context, baseURL }) => signIn(context, "seller", baseURL!));
 test.setTimeout(120_000);
 
 const PNG = Buffer.from(

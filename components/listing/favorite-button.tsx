@@ -1,14 +1,16 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { setFavorite } from "@/app/me/actions";
 import { buttonClass } from "@/components/ui/button";
-import { ensureSession } from "@/lib/ensure-session";
+import { requireAccount } from "@/lib/require-account";
 
 // ponytail: the ad page is cached for everyone, so the button does not know if this visitor saved it.
 // A second save is harmless (the action treats a duplicate as success). Read the state per user if that confuses people.
 export function FavoriteButton({ listingId, initialSaved = false }: { listingId: string; initialSaved?: boolean }) {
+  const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -16,7 +18,7 @@ export function FavoriteButton({ listingId, initialSaved = false }: { listingId:
   const toggle = () =>
     startTransition(async () => {
       setError("");
-      if (!(await ensureSession())) return setError("Sign-in is not available now. Try again later.");
+      if (!(await requireAccount(router))) return;
       const result = await setFavorite(listingId, !saved);
       if (result.error) return setError(result.error);
       setSaved(!saved);

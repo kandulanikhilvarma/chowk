@@ -20,10 +20,13 @@ type Props = { searchParams: Promise<{ listing?: string | string[] }> };
 export default async function MessagesPage({ searchParams }: Props) {
   const { listing } = await searchParams;
   const supabase = await createClient();
-  const uid = (await supabase.auth.getClaims()).data?.claims.sub;
+  const claims = (await supabase.auth.getClaims()).data?.claims;
+  const uid = claims?.sub;
 
   if (typeof listing === "string") {
     if (!UUID.test(listing)) notFound();
+    // Chatting needs a signed-in account. Sign-in brings the visitor back to this ad.
+    if (!uid || claims.is_anonymous) redirect(`/login?next=${encodeURIComponent(`/messages?listing=${listing}`)}`);
     return <NewChat listingId={listing} uid={uid} />;
   }
 
@@ -91,18 +94,16 @@ export default async function MessagesPage({ searchParams }: Props) {
   );
 }
 
-async function NewChat({ listingId, uid }: { listingId: string; uid?: string }) {
-  if (uid) {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq("listing_id", listingId)
-      .eq("buyer_id", uid)
-      .maybeSingle();
-    if (error) throw new Error(`chat lookup failed: ${error.message}`);
-    if (data) redirect(`/messages/${data.id}`);
-  }
+async function NewChat({ listingId, uid }: { listingId: string; uid: string }) {
+  const supabase = await createClient();
+  const { data: chat, error: chatError } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", uid)
+    .maybeSingle();
+  if (chatError) throw new Error(`chat lookup failed: ${chatError.message}`);
+  if (chat) redirect(`/messages/${chat.id}`);
 
   const { data: ad, error } = await supabasePublic
     .from("listings")

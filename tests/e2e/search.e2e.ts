@@ -52,7 +52,7 @@ test("sign-in callback never redirects off site", async ({ page }) => {
   await page.goto("/auth/callback?next=//evil.com");
   await expect(page).toHaveURL(/\/login\?error=sign_in_failed&next=%2Fme$/);
   await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue as guest" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue as guest" })).toHaveCount(0);
 });
 
 test("a plain browse starts at the visitor city and a search does not", async ({ browser }) => {
