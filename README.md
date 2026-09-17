@@ -61,7 +61,7 @@ Germany's Kleinanzeigen shows another model. It has free ads, radius search, wan
 
 ### Low friction, no dark patterns
 
-- Browse without an account. The first post, chat or save starts a guest account, and Google keeps it later.
+- Browse without an account. Posting, chatting, saving and reporting need Google sign-in, and sign-in brings you back to the same page.
 - Sell is the center tab. A strength meter, a category suggestion and a price hint help. A first ad goes online in about a minute.
 - Safety nudges show at the moment of risk: the first chat with a stranger, and payment words in a message.
 - No streaks, no fake urgency, no paid placement.
@@ -86,7 +86,7 @@ flowchart LR
   U["Phone browser (PWA)"] -->|HTTPS| V["Vercel, Mumbai functions<br/>Next.js 16 App Router"]
   V -->|"anon client: cached public pages"| API["Supabase Data API<br/>RLS on every table"]
   V -->|"cookie client: server actions"| API
-  U -->|"guest and Google sign-in"| AUTH["Supabase Auth"]
+  U -->|"Google sign-in"| AUTH["Supabase Auth"]
   U -->|"WebP photos resized in the browser"| ST["Supabase Storage<br/>listing-images"]
   U <-->|"live chat"| RT["Supabase Realtime"]
   API --> DB[("Postgres, ap-south-1<br/>PostGIS and pg_trgm")]
@@ -225,7 +225,8 @@ stateDiagram-v2
 - **Definer functions check the caller.** Each one sets `search_path = ''` and checks that the caller owns the ad or is part of the chat or deal. The API cannot call trigger functions.
 - **Chats.** Only the buyer and the seller read a chat. A block stops messages both ways. Clients cannot post system messages or notifications.
 - **UPI handoff.** `handoff_upi()` returns the seller's UPI ID only to the buyer, and only after both tapped "We met in person".
-- **Abuse limits.** 10 ads and 20 new chats per account per day, with a per-user lock. Guest reports do not hide ads.
+- **Signed-in writes only.** Restrictive RLS policies refuse posts, photos, chats, messages, saves and reports from guest (anonymous) sessions, so the API cannot skip the sign-in wall.
+- **Abuse limits.** 10 ads and 20 new chats per account per day, with a per-user lock.
 - **Photos.** Uploads go only into the uploader's own storage folder.
 - **Redirects.** The sign-in callback accepts only paths on Chowk.
 
@@ -257,7 +258,7 @@ The largest paint on search and ad pages is a demo photo from Unsplash. Vercel m
 
 1. Create a Supabase project, preferably in `ap-south-1`.
 2. Apply the files in `supabase/migrations` in order, then run `supabase/seed/01_reference.sql` for categories, cities and the demo seller.
-3. In Supabase, go to **Authentication → Sign In / Providers**. Turn on **Allow anonymous sign-ins** and **Allow manual linking**. Add Google if you want accounts that last across devices.
+3. In Supabase, go to **Authentication → Sign In / Providers**. Add Google. Turn off **Allow anonymous sign-ins**: the database refuses guest posts, chats, saves and reports.
 4. Copy `.env.example` to `.env.local` and fill in the values.
 5. Install and start:
 
@@ -289,7 +290,7 @@ This runs the color contrast check, typecheck, lint, unit tests and the producti
 npx playwright test
 ```
 
-End-to-end tests use your installed Chrome. Set `E2E_BASE_URL` to test a deployment. Tests that post ads, chat and delete their data run only with `E2E_WRITES=1`.
+End-to-end tests use your installed Chrome. Set `E2E_BASE_URL` to test a deployment. Tests that post ads, chat and delete their data run only with `E2E_WRITES=1`. They sign in as two test accounts. Make both in Supabase (Authentication, Users, Add user, with auto confirm). Put `E2E_SELLER_EMAIL`, `E2E_SELLER_PASSWORD`, `E2E_BUYER_EMAIL` and `E2E_BUYER_PASSWORD` in `.env.local`.
 
 Run `supabase/tests/rls.sql` in the Supabase SQL editor. It ends with `RLS OK: 40 checks passed`, and nothing is kept.
 

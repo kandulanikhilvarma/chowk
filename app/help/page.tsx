@@ -9,10 +9,7 @@ const faqs: [string, ReactNode][] = [
   ["Does Chowk cost money?", "No. Posting, chats, moving an ad up and renewing are free. Chowk takes no commission and never holds your money."],
   [
     "Do I need an account?",
-    <>
-      You can browse without one. When you post, chat or save something, Chowk starts a guest account on this device. On My Chowk, tap
-      Save my account with Google so that you do not lose it.
-    </>,
+    "You can look at ads without one. To post an ad, chat, save an ad or report, sign in with Google. You come back to the same page after sign-in.",
   ],
   ["How do I post an ad?", "Tap Sell. Add photos first, then the title, price and place. Chowk suggests a category and shows prices of similar ads."],
   ["How do I edit, reserve or mark an ad as sold?", "Open My Chowk. Each ad has buttons to reserve, move up, pause, mark as sold, edit and delete it."],

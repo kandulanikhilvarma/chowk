@@ -26,6 +26,21 @@ test("grievance page names the officer", async ({ page }) => {
   );
 });
 
+test("posting and chatting send signed-out visitors to sign in and back", async ({ page }) => {
+  await page.goto("/post");
+  await expect(page).toHaveURL(/\/login\?next=(%2F|\/)post$/);
+
+  await page.goto("/s");
+  await page.locator('a[href^="/l/"]').first().click();
+  await page.getByRole("link", { name: /Chat with seller|I have this/ }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fmessages%3Flisting%3D[0-9a-f-]{36}$/);
+
+  await page.goBack();
+  await page.getByRole("button", { name: "Report this ad" }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fl%2F[0-9a-f-]{36}$/);
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+});
+
 test("admin queue sends visitors to sign in", async ({ page }) => {
   await page.goto("/admin/reports");
   await expect(page).toHaveURL(/\/login\?next=/);

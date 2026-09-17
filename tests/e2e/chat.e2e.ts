@@ -1,8 +1,9 @@
 import { devices, expect, test, type Page } from "@playwright/test";
+import { hasTestAccounts, signIn } from "./auth";
 
-// Two guest accounts talk in real time, agree on an offer, close the deal and rate each other.
+// Two signed-in test accounts talk in real time, agree on an offer, close the deal and rate each other.
 // Writes to the shared database: E2E_WRITES=1 npm run e2e. The ad (and its chat, deal and ratings) is deleted at the end.
-test.skip(!process.env.E2E_WRITES, "set E2E_WRITES=1 to run tests that write data");
+test.skip(!process.env.E2E_WRITES || !hasTestAccounts, "set E2E_WRITES=1 and the E2E_SELLER_ and E2E_BUYER_ account details");
 test.setTimeout(180_000);
 
 const PNG = Buffer.from(
@@ -24,13 +25,15 @@ async function postAd(page: Page, title: string) {
   await expect(page).toHaveURL(/\/l\/[0-9a-f-]{36}$/, { timeout: 30_000 });
 }
 
-test("chat, offer, deal and ratings between two people", async ({ page: seller, browser }, testInfo) => {
+test("chat, offer, deal and ratings between two people", async ({ page: seller, context, browser, baseURL }, testInfo) => {
   const title = `e2e_ Hero Sprint cycle chat ${Date.now()}`;
+  await signIn(context, "seller", baseURL!);
   seller.on("dialog", (d) => d.accept());
   await postAd(seller, title);
   const adUrl = seller.url();
 
   const buyerContext = await browser.newContext({ ...devices["Pixel 7"], baseURL: testInfo.project.use.baseURL });
+  await signIn(buyerContext, "buyer", baseURL!);
   const buyer = await buyerContext.newPage();
 
   try {

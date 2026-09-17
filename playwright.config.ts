@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Supabase URL, key and the test account details for the writing tests.
+try {
+  process.loadEnvFile(".env.local");
+} catch {}
+
 // E2E specs end in .e2e.ts so Vitest does not pick them up.
 export default defineConfig({
   testDir: "tests/e2e",

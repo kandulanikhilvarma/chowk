@@ -1,10 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Enums } from "@/lib/database.types";
-import { ensureSession } from "@/lib/ensure-session";
+import { requireAccount } from "@/lib/require-account";
 import { reportReasons } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -12,6 +13,7 @@ type Reason = Enums<"report_reason">;
 
 // One dialog for ads and people. Pass listingId to report an ad, userId to report a person.
 export function ReportButton({ listingId, userId, label = "Report this ad" }: { listingId?: string; userId?: string; label?: string }) {
+  const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const [reason, setReason] = useState<Reason>("scam");
   const [details, setDetails] = useState("");
@@ -21,7 +23,6 @@ export function ReportButton({ listingId, userId, label = "Report this ad" }: { 
   const submit = () =>
     startTransition(async () => {
       setState({});
-      if (!(await ensureSession())) return setState({ error: "The guest account did not start. Try again." });
       const { error } = await createClient()
         .from("reports")
         .insert({ listing_id: listingId ?? null, reported_user_id: userId ?? null, reason, details: details.trim() || null });
@@ -37,7 +38,9 @@ export function ReportButton({ listingId, userId, label = "Report this ad" }: { 
     <>
       <button
         type="button"
-        onClick={() => dialog.current?.showModal()}
+        onClick={async () => {
+          if (await requireAccount(router)) dialog.current?.showModal();
+        }}
         className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-danger hover:underline"
       >
         <Flag className="size-4" aria-hidden />

@@ -27,8 +27,7 @@ export default async function LoginPage({
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Sign in to Chowk</h1>
         <p className="text-ink-2">
-          Post ads, chat with sellers and save searches. A guest account works right away. Add Google later to keep it on
-          every device.
+          Sign in to post ads, chat with sellers and save ads and searches. You can look at ads without an account.
         </p>
       </div>
       {error && (

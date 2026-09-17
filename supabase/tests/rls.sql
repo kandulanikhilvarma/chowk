@@ -101,7 +101,7 @@ begin
 
   -- Guest (stranger to the chat) ---------------------------------------------------------------
   execute 'reset role';
-  perform set_config('request.jwt.claims', json_build_object('sub', guest, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', guest, 'role', 'authenticated', 'is_anonymous', true)::text, true);
   execute 'set local role authenticated';
 
   select count(*) into cnt from public.messages where conversation_id = cid;
@@ -119,8 +119,28 @@ begin
   if public.handoff_upi(cid) is not null then raise exception 'FAIL: stranger got the UPI ID' using errcode = 'CHW01'; end if;
   n := n + 1;
 
-  -- Guest reports are stored but do not count toward the auto-hide.
-  insert into public.reports (listing_id, reason) values (lid2, 'scam');
+  -- Guests can read but not write: no ads, chats, reports or saves without a signed-in account.
+  begin
+    insert into public.reports (listing_id, reason) values (lid2, 'scam');
+    raise exception 'FAIL: guest filed a report' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+  begin
+    insert into public.listings (category_id, title, description, price_paise, price_type, city_id, location)
+    values (cat, 'e2e_ guest ad', 'test', 1000, 'fixed', city, extensions.st_setsrid(extensions.st_makepoint(78.48, 17.38), 4326)::extensions.geography);
+    raise exception 'FAIL: guest posted an ad' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+  begin
+    perform public.start_conversation(lid2, 'guest hello');
+    raise exception 'FAIL: guest started a chat' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+  begin
+    insert into public.favorites (listing_id) values (lid2);
+    raise exception 'FAIL: guest saved an ad' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
 
   -- Seller answers, meets, sells --------------------------------------------------------------
   execute 'reset role';
@@ -186,7 +206,7 @@ begin
   n := n + 1;
   perform public.delete_account();
 
-  -- Buyer (a real account) reports the same listing; only this report counts.
+  -- Buyer (a real account) reports the listing; the count goes to 1.
   execute 'reset role';
   perform set_config('request.jwt.claims', json_build_object('sub', buyer, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
@@ -194,7 +214,7 @@ begin
 
   execute 'reset role';
   if (select report_count from public.listings where id = lid2) <> 1 then
-    raise exception 'FAIL: guest report counted toward auto-hide, or real report did not' using errcode = 'CHW01';
+    raise exception 'FAIL: the real report did not count' using errcode = 'CHW01';
   end if;
   n := n + 2;
   update public.listings set status = 'removed' where id = lid2;

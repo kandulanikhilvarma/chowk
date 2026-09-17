@@ -10,7 +10,7 @@ import { buttonClass } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { suggestCategory } from "@/lib/category-suggest";
 import type { Json } from "@/lib/database.types";
-import { ensureSession } from "@/lib/ensure-session";
+import { requireAccount } from "@/lib/require-account";
 import { formatPrice } from "@/lib/format";
 import { FULL_PX, PhotoError, THUMB_PX, resizeImage } from "@/lib/images";
 import { MAX_PHOTOS, listingSchema, listingStrength, type ListingInput } from "@/lib/listing-schema";
@@ -186,11 +186,8 @@ export function PostForm({
 
     startTransition(async () => {
       setStatus("Getting ready");
-      const uid = await ensureSession();
-      if (!uid) {
-        setStatus("");
-        return setError("Guest sign-in is not available now. Try again later.");
-      }
+      const uid = await requireAccount(router);
+      if (!uid) return setStatus("");
       const bucket = createClient().storage.from("listing-images");
 
       const uploaded: ListingInput["photos"] = [];

@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteSavedSearch, saveSearch, type AdResult } from "@/app/me/actions";
 import { Chip } from "@/components/ui/chip";
-import { ensureSession } from "@/lib/ensure-session";
+import { requireAccount } from "@/lib/require-account";
 
 export function SaveSearchButton({ raw, category }: { raw: Record<string, string>; category?: string }) {
+  const router = useRouter();
   const [result, setResult] = useState<AdResult | null>(null);
   const [pending, startTransition] = useTransition();
 
   const save = () =>
     startTransition(async () => {
-      if (!(await ensureSession())) return setResult({ error: "Sign-in is not available now. Try again later." });
+      if (!(await requireAccount(router))) return;
       setResult(await saveSearch(raw, category));
     });
 
