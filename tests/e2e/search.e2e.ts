@@ -76,10 +76,10 @@ test("seller, date and photo filters stay in the form", async ({ page }) => {
   await expect(page.locator(card).first()).toBeVisible();
 });
 
-test("demo ad credits the photographer and has a share image", async ({ page, request }) => {
+test("an ad page has a share image and shows no demo wording", async ({ page, request }) => {
   await page.goto("/s?q=iphone");
   await page.locator(card).first().click();
-  await expect(page.getByRole("link", { name: "Unsplash" })).toHaveAttribute("href", /utm_source=chowk/);
+  await expect(page.getByText(/demo/i)).toHaveCount(0);
   const og = await page.locator('meta[property="og:image"]').getAttribute("content");
   const res = await request.get(new URL(og!).pathname + new URL(og!).search);
   expect(res.headers()["content-type"]).toBe("image/png");

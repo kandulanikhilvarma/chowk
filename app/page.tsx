@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   Baby,
   Bike,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { ListingCard, type ListingCardData } from "@/components/listing/listing-card";
 import { ButtonLink } from "@/components/ui/button";
+import { ListingGridSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { searchListings } from "@/lib/listings";
 
 // ponytail: one minute of staleness keeps the home page cached; add revalidateTag on post when that feels slow.
@@ -45,23 +47,17 @@ const trust = [
   { icon: Star, title: "Trust you can see", body: "Friendly and reliable badges come only from real deals." },
 ];
 
-export default async function Home() {
-  const [fresh, free] = await Promise.all([
-    searchListings({ p_limit: 8 }),
-    searchListings({ p_price_type: "free", p_limit: 4 }),
-  ]);
-
+export default function Home() {
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 pt-4 md:pt-8">
-      {/* Brand indigo in both themes: the dark --primary is too light for white text. */}
-      <section className="relative isolate overflow-hidden rounded-card bg-[#2B3A8C] px-5 py-8 text-white md:px-10 md:py-14">
+      <section className="relative isolate overflow-hidden rounded-card bg-brand-deep px-5 py-8 text-white md:px-10 md:py-14">
         <svg
           aria-hidden
           viewBox="0 0 200 200"
           className="absolute -right-16 -bottom-16 -z-10 size-44 text-white opacity-[0.08] md:-right-6 md:-bottom-6 md:size-80"
         >
           <path d="M85 0h30v200H85zM0 85h200v30H0z" fill="currentColor" />
-          <rect x="62" y="62" width="76" height="76" rx="18" fill="#2B3A8C" stroke="currentColor" strokeWidth="14" />
+          <rect x="62" y="62" width="76" height="76" rx="18" fill="#14532D" stroke="currentColor" strokeWidth="14" />
         </svg>
         <h1 className="max-w-xl text-3xl font-extrabold md:text-4xl">Sell it. Find it. Around the corner.</h1>
         <p className="mt-3 max-w-lg text-base text-white/85 md:text-lg">
@@ -71,12 +67,12 @@ export default async function Home() {
         <form action="/s" role="search" className="mt-6 max-w-lg md:hidden">
           <label className="relative block">
             <span className="sr-only">Search Chowk</span>
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#555A6E]" />
+            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#4A5750]" />
             <input
               name="q"
               type="search"
               placeholder="What are you looking for?"
-              className="h-12 w-full rounded-full bg-white pr-4 pl-12 text-base text-[#16182B] placeholder:text-[#555A6E]"
+              className="h-12 w-full rounded-full bg-white pr-4 pl-12 text-base text-[#14201A] placeholder:text-[#4A5750]"
             />
           </label>
         </form>
@@ -112,23 +108,58 @@ export default async function Home() {
         </ul>
       </section>
 
-      <ListingRail id="fresh" title="Fresh on Chowk" href="/s" listings={fresh} />
-      <ListingRail id="free" title="Free to a good home" href="/s?price_type=free" listings={free} />
+      {/* The hero and the categories are static, so they paint while the ads are still loading. */}
+      <Suspense fallback={<RailsFallback />}>
+        <Rails />
+      </Suspense>
 
-      <section aria-label="Why Chowk" className="grid gap-3 md:grid-cols-3">
-        {trust.map(({ icon: Icon, title, body }) => (
-          <div key={title} className="flex gap-3 rounded-card bg-surface p-4 ring-1 ring-line">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-soft text-success">
-              <Icon className="size-5" aria-hidden />
-            </span>
-            <div>
-              <h3 className="font-semibold text-ink">{title}</h3>
-              <p className="mt-0.5 text-sm text-ink-2">{body}</p>
-            </div>
-          </div>
-        ))}
+      {/* One surface split by hairlines, not three cards. Nothing here is elevated above
+          the rest, so a row of boxes would only add borders. */}
+      <section aria-label="Why Chowk" className="overflow-hidden rounded-card bg-surface ring-1 ring-line">
+        <ul className="grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
+          {trust.map(({ icon: Icon, title, body }) => (
+            <li key={title} className="flex gap-3 p-5">
+              <Icon className="size-5 shrink-0 text-primary" aria-hidden />
+              <div>
+                <h3 className="font-semibold text-ink">{title}</h3>
+                <p className="mt-1 text-sm text-ink-2">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
+  );
+}
+
+async function Rails() {
+  const [fresh, free] = await Promise.all([
+    searchListings({ p_limit: 8 }),
+    searchListings({ p_price_type: "free", p_limit: 4 }),
+  ]);
+
+  return (
+    <>
+      <ListingRail id="fresh" title="Fresh on Chowk" href="/s" listings={fresh} />
+      <ListingRail id="free" title="Free to a good home" href="/s?price_type=free" listings={free} />
+    </>
+  );
+}
+
+// Same two rails at the same heights, so the trust cards below never jump.
+function RailsFallback() {
+  return (
+    <>
+      {[8, 4].map((count) => (
+        <section key={count}>
+          <div className="mb-4 flex items-end justify-between">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <ListingGridSkeleton count={count} />
+        </section>
+      ))}
+    </>
   );
 }
 

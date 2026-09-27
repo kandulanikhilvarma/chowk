@@ -21,8 +21,6 @@ type SellerStats = { deals: number; reliable_raters: number; friendly_raters: nu
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chowk-kandula.vercel.app";
-// Unsplash asks for these referral parameters on every credit link.
-const unsplashRef = "utm_source=chowk&utm_medium=referral";
 
 const conditionLabel: Record<string, string> = {
   new: "New",
@@ -38,7 +36,7 @@ const getListing = cache(async (id: string) => {
   const { data, error } = await supabasePublic
     .from("listings")
     .select(
-      "id, title, description, price_paise, price_type, kind, condition, attributes, status, locality, created_at, is_demo, demo_image_url, demo_photo_by, demo_photo_user, user_id, category:categories(slug, name, attribute_schema), city:cities(name), images:listing_images(path, thumb_path, position), seller:profiles!listings_user_id_fkey(display_name, is_business)",
+      "id, title, description, price_paise, price_type, kind, condition, attributes, status, locality, created_at, demo_image_url, user_id, category:categories(slug, name, attribute_schema), city:cities(name), images:listing_images(path, thumb_path, position), seller:profiles!listings_user_id_fkey(display_name, is_business)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -148,29 +146,6 @@ export default async function ListingPage({ params }: Props) {
             ) : (
               <div className="grid aspect-[4/3] place-items-center rounded-card bg-surface-2 text-ink-2">No photos</div>
             )}
-            {listing.is_demo && (
-              <p className="mt-2 text-xs text-ink-2">
-                Demo ad. Nobody sells this item.
-                {listing.demo_photo_by && listing.demo_photo_user && (
-                  <>
-                    {" "}Photo by{" "}
-                    <a
-                      href={`https://unsplash.com/@${listing.demo_photo_user}?${unsplashRef}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-ink"
-                    >
-                      {listing.demo_photo_by}
-                    </a>{" "}
-                    on{" "}
-                    <a href={`https://unsplash.com/?${unsplashRef}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink">
-                      Unsplash
-                    </a>
-                    .
-                  </>
-                )}
-              </p>
-            )}
           </section>
 
           <header className="space-y-2">
@@ -178,10 +153,9 @@ export default async function ListingPage({ params }: Props) {
               {listing.kind === "wanted" && <Badge tone="primary">Wanted</Badge>}
               {listing.status === "reserved" && <Badge tone="accent">Reserved</Badge>}
               {listing.status === "sold" && <Badge tone="success">Sold</Badge>}
-              {listing.is_demo && <Badge>Demo</Badge>}
             </div>
             <p className="flex items-baseline gap-2">
-              <span className={`font-display text-3xl font-extrabold ${listing.price_type === "free" ? "text-success" : "text-ink"}`}>
+              <span className={`font-price text-3xl font-extrabold ${listing.price_type === "free" ? "text-success" : "text-ink"}`}>
                 {priceLabel(listing.price_paise, listing.price_type)}
               </span>
               {listing.price_type === "negotiable" && <span className="text-sm text-ink-2">Negotiable</span>}

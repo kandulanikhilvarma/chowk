@@ -40,7 +40,7 @@ export default async function ProfilePage({ params }: Props) {
     supabasePublic.rpc("profile_public_stats", { p_user: profile.id }),
     supabasePublic
       .from("listings")
-      .select("id, title, price_paise, price_type, kind, locality, created_at, is_demo, demo_image_url, city:cities(name), images:listing_images(thumb_path, position)")
+      .select("id, title, price_paise, price_type, kind, locality, created_at, demo_image_url, city:cities(name), images:listing_images(thumb_path, position)")
       .eq("user_id", profile.id)
       .in("status", ["active", "reserved"])
       .gt("expires_at", new Date().toISOString())
@@ -65,7 +65,6 @@ export default async function ProfilePage({ params }: Props) {
       locality: r.locality,
       createdAt: r.created_at,
       imageUrl: thumb ? photoBase + thumb : r.demo_image_url,
-      isDemo: r.is_demo,
     };
   });
   const since = new Date(profile.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" });

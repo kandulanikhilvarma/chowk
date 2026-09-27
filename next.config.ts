@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
   turbopack: { root: path.join(__dirname) },
   poweredByHeader: false,
   // No other site may frame Chowk, so account delete and admin buttons cannot be clickjacked.
-  // ponytail: no script CSP yet; add one with nonces if user text ever renders as HTML.
+  // proxy.ts sends the full policy, script-src nonce included, on every page it matches.
+  // This one is the floor for what the middleware skips: static assets and image files.
   headers: async () => [
     {
       source: "/:path*",

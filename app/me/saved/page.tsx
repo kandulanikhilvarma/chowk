@@ -16,7 +16,7 @@ export default async function SavedPage() {
   const { data, error } = await supabase
     .from("favorites")
     .select(
-      "created_at, listing:listings(id, title, price_paise, price_type, kind, locality, created_at, is_demo, demo_image_url, city:cities(name), images:listing_images(thumb_path, position))",
+      "created_at, listing:listings(id, title, price_paise, price_type, kind, locality, created_at, demo_image_url, city:cities(name), images:listing_images(thumb_path, position))",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -51,7 +51,6 @@ export default async function SavedPage() {
                     locality: l.locality,
                     createdAt: l.created_at,
                     imageUrl: cover ? photoBase + cover.thumb_path : l.demo_image_url,
-                    isDemo: l.is_demo,
                   }}
                 />
                 <FavoriteButton listingId={l.id} initialSaved />

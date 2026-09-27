@@ -23,7 +23,6 @@ export function toCard(row: SearchRow): ListingCardData {
     createdAt: row.created_at,
     // Demo photos come from Unsplash at 800 px; cards show at most about 300 CSS px.
     imageUrl: row.thumb_path ? photoBase + row.thumb_path : row.demo_image_url?.replace("w=800&h=600", "w=480&h=360"),
-    isDemo: row.is_demo,
   };
 }
 

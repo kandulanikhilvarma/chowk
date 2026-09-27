@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AccountActions } from "@/components/me/account-actions";
+import { PushToggle } from "@/components/me/push-toggle";
 import { SettingsForm } from "@/components/me/settings-form";
 import { BlockButton } from "@/components/safety/block-button";
 import { createClient } from "@/lib/supabase/server";
@@ -30,6 +31,8 @@ export default async function SettingsPage() {
       <SettingsForm
         initial={{ displayName: profile.data.display_name, isBusiness: profile.data.is_business, upiId: secret.data?.upi_id ?? "" }}
       />
+
+      <PushToggle uid={uid} />
 
       <section aria-labelledby="blocked" className="space-y-3">
         <h2 id="blocked" className="text-xl font-bold">

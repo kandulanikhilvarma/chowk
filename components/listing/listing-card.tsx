@@ -15,7 +15,6 @@ export type ListingCardData = {
   distanceKm?: number | null;
   createdAt: string;
   imageUrl?: string | null;
-  isDemo?: boolean;
 };
 
 // priority: the first cards on screen load at once, because one of them is usually the largest paint.
@@ -43,12 +42,11 @@ export function ListingCard({ listing: l, priority = false }: { listing: Listing
         )}
         <div className="absolute inset-x-2 top-2 flex justify-between">
           {l.kind === "wanted" ? <Badge tone="primary">Wanted</Badge> : <span />}
-          {l.isDemo && <Badge>Demo</Badge>}
         </div>
       </div>
       <div className="space-y-1 p-3">
         <p className="flex items-baseline gap-2">
-          <span className={`font-display text-xl font-bold ${l.priceType === "free" ? "text-success" : "text-ink"}`}>
+          <span className={`font-price text-xl font-bold ${l.priceType === "free" ? "text-success" : "text-ink"}`}>
             {priceLabel(l.pricePaise, l.priceType, true)}
           </span>
           {l.priceType === "negotiable" && <span className="text-xs text-ink-2">Negotiable</span>}

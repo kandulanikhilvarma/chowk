@@ -8,10 +8,10 @@
 
 A free marketplace for India where anyone can sell, give away, swap or ask for things near them.
 
-[![Live site](https://img.shields.io/badge/live-chowk--kandula.vercel.app-2B3A8C)](https://chowk-kandula.vercel.app)
-[![Next.js 16](https://img.shields.io/badge/Next.js-16-16182B)](https://nextjs.org)
-[![Supabase](https://img.shields.io/badge/Supabase-Mumbai-1F8A5B)](https://supabase.com)
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-F4A300)](LICENSE)
+[![Live site](https://img.shields.io/badge/live-chowk--kandula.vercel.app-14532D)](https://chowk-kandula.vercel.app)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-14201A)](https://nextjs.org)
+[![Supabase](https://img.shields.io/badge/Supabase-Mumbai-116B31)](https://supabase.com)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-A8511F)](LICENSE)
 
 <img src="docs/screens/home-light.png" width="240" alt="Chowk home page on a phone" />
 <img src="docs/screens/search-light.png" width="240" alt="Search results near Pune, nearest first" />
@@ -62,6 +62,7 @@ Germany's Kleinanzeigen shows another model. It has free ads, radius search, wan
 ### Low friction, no dark patterns
 
 - Browse without an account. Posting, chatting, saving and reporting need Google sign-in, and sign-in brings you back to the same page.
+- Installs as an app. A service worker caches the shell, so a dropped connection shows an offline page instead of a browser error.
 - Sell is the center tab. A strength meter, a category suggestion and a price hint help. A first ad goes online in about a minute.
 - Safety nudges show at the moment of risk: the first chat with a stranger, and payment words in a message.
 - No streaks, no fake urgency, no paid placement.
@@ -229,6 +230,7 @@ stateDiagram-v2
 - **Abuse limits.** 10 ads and 20 new chats per account per day, with a per-user lock.
 - **Photos.** Uploads go only into the uploader's own storage folder.
 - **Redirects.** The sign-in callback accepts only paths on Chowk.
+- **Content Security Policy.** Every dynamically rendered page carries `script-src 'self' 'nonce-...' 'strict-dynamic'`, so an injected `<script>` cannot run. The one inline script, the theme switch, is allowed by its SHA-256 hash instead of a nonce, which keeps the home page and the legal pages prerendered. `tests/unit/csp.test.ts` recomputes that hash and checks the prerendered list against `.next/prerender-manifest.json`.
 
 `supabase/tests/rls.sql` proves these rules with 40 checks in one rolled-back transaction. `supabase/ADVISORS.md` lists every Supabase advisor warning and why it stays.
 
@@ -240,7 +242,7 @@ stateDiagram-v2
 | Data | Supabase Postgres in Mumbai with PostGIS, pg_trgm, RLS, Realtime, Storage and Auth |
 | Hosting | Vercel, functions in `bom1` |
 | Validation | Zod on every server action |
-| Tests | Vitest (106 unit tests), Playwright (15 end-to-end tests), SQL RLS checks |
+| Tests | Vitest (114 unit tests), Playwright (15 end-to-end tests), SQL RLS checks |
 
 ## Quality
 
@@ -277,6 +279,7 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key. Safe in the browser because RLS protects the data. |
 | `NEXT_PUBLIC_SITE_URL` | Public base URL for sign-in redirects, the sitemap and share links |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Public half of the web push keypair. Leave it blank and the alerts opt-in stays hidden. |
 
 ### Checks
 
@@ -296,7 +299,7 @@ Run `supabase/tests/rls.sql` in the Supabase SQL editor. It ends with `RLS OK: 4
 
 ## Release 2
 
-- Web push alerts, then email after Chowk has a sending domain
+- Web push alerts: the service worker, the `push_subscriptions` table and the opt-in in Settings are in. What is left is the sender, which needs a VAPID keypair and a Supabase Edge Function. Email follows once Chowk has a sending domain.
 - Photos in chat
 - Hindi and Telugu
 - Phone OTP and optional ID checks
