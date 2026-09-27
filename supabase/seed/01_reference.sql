@@ -1,4 +1,4 @@
--- Reference data: categories with attribute schemas, cities, and the demo seller.
+-- Reference data: categories with attribute schemas, cities, and the seller that owns the sample ads.
 -- Run once on a fresh database after the migrations.
 
 insert into public.categories (slug, name, icon, position, attribute_schema) values
@@ -41,7 +41,7 @@ from (values
 ('Puducherry','Puducherry',11.9416,79.8083),('Prayagraj','Uttar Pradesh',25.4358,81.8463)
 ) as v(n, s, lat, lng);
 
--- Owner of every is_demo listing. The .invalid address can never receive mail or sign in.
+-- Owner of every sample listing. The .invalid address can never receive mail or sign in.
 insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at, is_anonymous)
 values ('00000000-0000-4000-8000-00000000c0c0', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-        'demo@chowk.invalid', '{"full_name":"Chowk Demo"}', now() - interval '400 days', now(), false);
+        'demo@chowk.invalid', '{"full_name":"Chowk"}', now() - interval '400 days', now(), false);

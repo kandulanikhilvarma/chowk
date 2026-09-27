@@ -82,6 +82,23 @@ export async function manageAd(id: string, action: AdAction): Promise<AdResult> 
   return { notice };
 }
 
+// Bulk buttons in My ads: renew every expired ad, pause or bring back every ad at once. Each ad runs
+// through manageAd, so the same ownership checks and daily and level limits apply one by one.
+const BULK: AdAction[] = ["renew", "pause", "activate"];
+
+export async function manageAds(ids: string[], action: AdAction): Promise<AdResult> {
+  if (!BULK.includes(action) || !Array.isArray(ids) || ids.length === 0 || ids.length > 100) return { error: "Nothing to change." };
+  let done = 0;
+  let firstError: string | undefined;
+  for (const id of ids) {
+    const r = await manageAd(id, action);
+    if (r.error) firstError ??= r.error;
+    else done++;
+  }
+  if (done === ids.length) return { notice: `Done for all ${done} ads.` };
+  return { error: `Done for ${done} of ${ids.length} ads. ${firstError ?? ""}`.trim() };
+}
+
 export async function setFavorite(listingId: string, saved: boolean): Promise<AdResult> {
   if (!UUID.test(listingId)) return { error: "Ad not found." };
   const supabase = await signedIn();

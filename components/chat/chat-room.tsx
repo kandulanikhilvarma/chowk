@@ -3,7 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, BadgeCheck, Handshake, IndianRupee, PartyPopper, Send, ShieldAlert, Star } from "lucide-react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Check,
+  Handshake,
+  Image as ImageIcon,
+  ImagePlus,
+  IndianRupee,
+  Send,
+  ShieldAlert,
+  Star,
+  X,
+} from "lucide-react";
 import { AdStrip } from "@/components/chat/ad-strip";
 import { BlockButton } from "@/components/safety/block-button";
 import { ReportButton } from "@/components/safety/report-button";
@@ -13,17 +26,21 @@ import { Chip } from "@/components/ui/chip";
 import { badgeLabel, levelLabel } from "@/lib/badges";
 import type { Tables } from "@/lib/database.types";
 import { formatPrice } from "@/lib/format";
+import { PhotoError, resizeImage } from "@/lib/images";
 import { scamWarnings } from "@/lib/scam";
 import { createClient } from "@/lib/supabase/browser";
 
-export type ChatMessage = Pick<Tables<"messages">, "id" | "sender_id" | "kind" | "body" | "offer_paise" | "offer_state" | "created_at">;
+export type ChatMessage = Pick<
+  Tables<"messages">,
+  "id" | "sender_id" | "kind" | "body" | "offer_paise" | "offer_state" | "image_path" | "created_at"
+>;
 
 type Failure = { code?: string; message: string };
 type Props = {
   conversationId: string;
   me: string;
   role: "buyer" | "seller";
-  other: { id: string; name: string; level: string; friendlyRaters: number; reliableRaters: number };
+  other: { id: string; name: string; level: string; friendlyRaters: number; reliableRaters: number; away: string | null };
   listing: { id: string; title: string; price: string; status: string; imageUrl: string | null };
   initialMessages: ChatMessage[];
   deal: { id: string; buyerConfirmed: boolean; sellerConfirmed: boolean } | null;
@@ -32,7 +49,10 @@ type Props = {
   blocked: boolean;
 };
 
-const COLUMNS = "id, sender_id, kind, body, offer_paise, offer_state, created_at";
+const COLUMNS = "id, sender_id, kind, body, offer_paise, offer_state, image_path, created_at";
+// Chat photos live in a private bucket; the page reads them through links that expire after an hour.
+const PHOTO_LINK_SECONDS = 3600;
+const CHAT_PHOTO_PX = 1280;
 const QUICK = {
   buyer: ["Is it still available?", "What is your last price?", "Where can we meet?"],
   seller: ["Yes, it is still available.", "Sorry, it is already sold.", "Can we meet tomorrow?"],
@@ -65,6 +85,38 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
   const [pending, startTransition] = useTransition();
   const metRef = useRef(met);
   const endRef = useRef<HTMLLIElement>(null);
+  // Messages already on the page at load stay still; only ones that arrive afterwards animate in.
+  const [loadedIds] = useState(() => new Set(initialMessages.map((m) => m.id)));
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const [typing, setTyping] = useState(false);
+  const [online, setOnline] = useState(false);
+  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const lastTypingSent = useRef(0);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // Signs any photo path on screen that has no link yet, in one call.
+  useEffect(() => {
+    const missing = messages.flatMap((m) => (m.image_path && !photoUrls[m.image_path] ? [m.image_path] : []));
+    if (!missing.length) return;
+    let current = true;
+    createClient()
+      .storage.from("chat-images")
+      .createSignedUrls(missing, PHOTO_LINK_SECONDS)
+      .then(({ data, error }) => {
+        if (error) return console.error("chat photo links failed", error);
+        if (!current) return;
+        setPhotoUrls((urls) => {
+          const next = { ...urls };
+          for (const s of data) if (s.path && s.signedUrl) next[s.path] = s.signedUrl;
+          return next;
+        });
+      });
+    return () => {
+      current = false;
+    };
+  }, [messages, photoUrls]);
 
   useEffect(() => {
     metRef.current = met;
@@ -83,7 +135,10 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: byConversation }, ({ new: row }) => {
         const m = row as ChatMessage;
         setMessages((list) => (list.some((x) => x.id === m.id) ? list : [...list, m]));
-        if (m.sender_id !== me) markRead();
+        if (m.sender_id !== me) {
+          markRead();
+          setTyping(false);
+        }
         // Deal steps post a system message, so reload the server parts of the page.
         if (m.kind === "system") router.refresh();
       })
@@ -97,11 +152,24 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `id=eq.${conversationId}` }, ({ new: row }) => {
         if (!!row.buyer_met_at !== metRef.current.buyer || !!row.seller_met_at !== metRef.current.seller) router.refresh();
       })
+      // Typing and presence carry only a user id, never message text. A typing signal lasts 3 seconds
+      // unless another one arrives, so a closed tab never leaves "typing" stuck on.
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        if (payload?.from === me) return;
+        setTyping(true);
+        clearTimeout(typingTimer.current);
+        typingTimer.current = setTimeout(() => setTyping(false), 3000);
+      })
+      .on("presence", { event: "sync" }, () => {
+        const people = Object.values(channel.presenceState<{ user: string }>()).flat();
+        setOnline(people.some((p) => p.user !== me));
+      })
       // Send stays off until the channel is live. Each time it goes live (first join or a reconnect),
       // fetch the chat again: inserts sent while the channel was down never arrive as events.
       .subscribe((status) => {
         setLive(status === "SUBSCRIBED");
         if (status !== "SUBSCRIBED") return;
+        void channel.track({ user: me });
         supabase
           .from("messages")
           .select(COLUMNS)
@@ -118,11 +186,22 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
           });
       });
 
+    channelRef.current = channel;
     markRead();
     return () => {
+      clearTimeout(typingTimer.current);
+      channelRef.current = null;
       void supabase.removeChannel(channel);
     };
   }, [conversationId, me, router]);
+
+  // At most one typing signal every 2 seconds while the person types.
+  const signalTyping = () => {
+    const now = Date.now();
+    if (now - lastTypingSent.current < 2000) return;
+    lastTypingSent.current = now;
+    void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { from: me } });
+  };
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -150,6 +229,34 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
       setText("");
       setOffer(null);
     });
+
+  // Resized in the browser like ad photos, then stored under this chat's folder, which only the two of you can read.
+  const sendPhoto = async (file: File) => {
+    setError(null);
+    setUploading(true);
+    try {
+      const { blob } = await resizeImage(file, CHAT_PHOTO_PX);
+      const path = `${conversationId}/${crypto.randomUUID()}.${blob.type === "image/webp" ? "webp" : "jpg"}`;
+      const supabase = createClient();
+      const up = await supabase.storage.from("chat-images").upload(path, blob, { contentType: blob.type });
+      if (up.error) {
+        console.error("chat photo upload failed", up.error);
+        return setError("The photo did not upload. Check your connection and try again.");
+      }
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({ conversation_id: conversationId, kind: "image", body: "Photo", image_path: path })
+        .select(COLUMNS)
+        .single();
+      if (error) return setError(problem(error));
+      setMessages((list) => (list.some((x) => x.id === data.id) ? list : [...list, data]));
+    } catch (e) {
+      setError(e instanceof PhotoError ? e.message : "The photo did not open. Try a different photo.");
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  };
 
   const sendOffer = () => {
     const rupees = Number(offer);
@@ -190,6 +297,7 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
             </h1>
             <p className="flex flex-wrap items-center gap-1.5 text-xs text-ink-2">
               {levelLabel[other.level] ?? "Newcomer"}
+              {other.away && <Badge tone="warning">{other.away}</Badge>}
               {badges.map((b) => (
                 <Badge key={b} tone="success">
                   {b}
@@ -197,7 +305,10 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
               ))}
             </p>
           </div>
-          <span className={`text-xs font-medium ${live ? "text-success" : "text-ink-2"}`}>{live ? "Live" : "Connecting"}</span>
+          <span aria-live="polite" className={`flex items-center gap-1.5 text-xs font-medium ${live ? "text-success" : "text-ink-2"}`}>
+            {live && <span aria-hidden className={`size-2 rounded-full ${online ? "bg-success" : "bg-line"}`} />}
+            {!live ? "Connecting" : typing ? "Typing" : online ? "Online" : "Live"}
+          </span>
         </div>
         <AdStrip {...listing} />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -213,24 +324,50 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
 
       <ol aria-label="Messages" aria-live="polite" className="space-y-3 py-4">
         {messages.map((m) => {
+          const enter = loadedIds.has(m.id) ? "" : "msg-in";
           if (m.kind === "system") {
             return (
-              <li key={m.id} className="text-center text-xs font-medium text-ink-2">
+              <li key={m.id} className={`text-center text-xs font-medium text-ink-2 ${enter}`}>
                 {m.body}
               </li>
             );
           }
           const mine = m.sender_id === me;
           const warnings = mine ? [] : scamWarnings(m.body);
+          const state = m.offer_state ?? "pending";
           return (
-            <li key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-              <div className={`max-w-[85%] rounded-card px-3 py-2 ${mine ? "bg-primary text-on-primary" : "bg-surface text-ink ring-1 ring-line"}`}>
+            <li key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"} ${enter}`}>
+              <div
+                className={`max-w-[85%] rounded-card px-3 py-2 ${mine ? "bg-primary text-on-primary" : "bg-surface text-ink ring-1 ring-line"} ${m.kind === "offer" && state === "accepted" ? "outline-2 outline-offset-2 outline-success" : ""}`}
+              >
                 {m.kind === "offer" && m.offer_paise != null ? (
                   <>
                     <span className="block text-xs font-semibold">{mine ? "Your offer" : "Offer"}</span>
-                    <span className="block font-display text-2xl font-bold">{formatPrice(m.offer_paise)}</span>
-                    <span className="block text-xs">{offerState[m.offer_state ?? "pending"]}</span>
+                    <span className={`font-price block text-2xl font-bold ${state === "declined" ? "line-through opacity-70" : ""}`}>
+                      {formatPrice(m.offer_paise)}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs">
+                      {state === "accepted" && <Check className="size-3.5" aria-hidden />}
+                      {state === "declined" && <X className="size-3.5" aria-hidden />}
+                      {offerState[state]}
+                    </span>
                   </>
+                ) : m.kind === "image" && m.image_path ? (
+                  photoUrls[m.image_path] ? (
+                    <a href={photoUrls[m.image_path]} target="_blank" rel="noopener noreferrer" className="-mx-1 -my-0.5 block">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived signed link from a private bucket */}
+                      <img
+                        src={photoUrls[m.image_path]}
+                        alt={mine ? "Photo you sent" : `Photo from ${other.name}`}
+                        className="max-h-72 w-auto max-w-full rounded-field object-cover"
+                      />
+                    </a>
+                  ) : (
+                    <span className="flex h-40 w-56 max-w-full items-center justify-center gap-2 text-sm opacity-80">
+                      <ImageIcon className="size-5" aria-hidden />
+                      Photo
+                    </span>
+                  )
                 ) : (
                   <p className="break-words whitespace-pre-line">{m.body}</p>
                 )}
@@ -257,6 +394,14 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
             </li>
           );
         })}
+        {typing && (
+          <li aria-hidden className="msg-in flex items-center gap-1 px-1 text-ink-2">
+            <span className="typing-dot size-1.5 rounded-full bg-current" />
+            <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:160ms]" />
+            <span className="typing-dot size-1.5 rounded-full bg-current [animation-delay:320ms]" />
+            <span className="ml-1 text-xs">{other.name} is typing</span>
+          </li>
+        )}
         <li ref={endRef} aria-hidden />
       </ol>
 
@@ -291,6 +436,7 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
                 </Button>
               </div>
             ))}
+          {dealDone && <DealDone name={other.name} reviewed={reviewed} />}
           {deal && dealDone && !reviewed && (
             <ReviewForm
               who={role === "buyer" ? "seller" : "buyer"}
@@ -306,12 +452,6 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
                 )
               }
             />
-          )}
-          {dealDone && reviewed && (
-            <p className="flex items-center gap-2 font-semibold text-success">
-              <PartyPopper className="size-5" aria-hidden />
-              Deal done. Thank you for rating {other.name}.
-            </p>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">
             {iMet ? (
@@ -395,6 +535,27 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
             </p>
           ))}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void sendPhoto(file);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              disabled={!live || uploading}
+              aria-label={uploading ? "Sending photo" : "Send a photo"}
+              className="pressable grid size-11 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink hover:bg-surface-2 disabled:opacity-50"
+            >
+              <ImagePlus className={`size-5 ${uploading ? "motion-safe:animate-pulse" : ""}`} aria-hidden />
+            </button>
             <label className="flex-1">
               <span className="sr-only">Message</span>
               <textarea
@@ -402,7 +563,10 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
                 maxLength={2000}
                 value={text}
                 placeholder="Write a message"
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  signalTyping();
+                }}
                 className="block max-h-32 min-h-11 w-full resize-none rounded-field border border-line bg-surface px-3 py-2.5 text-ink placeholder:text-ink-2"
               />
             </label>
@@ -417,6 +581,21 @@ export function ChatRoom({ conversationId, me, role, other, listing, initialMess
           {blocked ? `You blocked ${other.name}. Unblock them to send messages.` : "This ad is closed. You cannot send new messages."}
         </p>
       )}
+    </div>
+  );
+}
+
+// Both sides confirmed. A check mark draws itself once; reduced motion shows it drawn.
+function DealDone({ name, reviewed }: { name: string; reviewed: boolean }) {
+  return (
+    <div role="status" className="flex items-center gap-3 rounded-field bg-success-soft p-3 text-success">
+      <svg viewBox="0 0 24 24" aria-hidden className="draw-check size-8 shrink-0">
+        <circle cx="12" cy="12" r="11" className="fill-success" />
+        <path d="M7 12.5l3.2 3.2L17 9" fill="none" className="stroke-on-primary" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <p className="font-semibold">
+        {reviewed ? `Deal done. Thank you for rating ${name}.` : `Deal done with ${name}. Rate each other below.`}
+      </p>
     </div>
   );
 }

@@ -1,11 +1,23 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { Anek_Latin, Inter } from "next/font/google";
+import { Anek_Latin, Bricolage_Grotesque, Inter } from "next/font/google";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
+import { RegisterServiceWorker } from "@/components/shell/register-sw";
+import { THEME_SCRIPT } from "@/lib/theme-script";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+// Display face. The opsz axis regrades the letterforms as they scale, so the hero line keeps
+// tight joins and open counters instead of looking like body text blown up.
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  display: "swap",
+  axes: ["opsz"],
+});
+// Prices only. Anek's tall, even figures stay readable in a grid of cards at a glance.
 const anek = Anek_Latin({ subsets: ["latin"], variable: "--font-anek", display: "swap" });
 
 export const metadata: Metadata = {
@@ -18,19 +30,16 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbf8f3" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1020" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1310" },
   ],
 };
 
-// Runs before first paint so a saved theme never flashes the wrong colors.
-const themeScript = `try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}`;
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IN" suppressHydrationWarning className={`${inter.variable} ${anek.variable}`}>
+    <html lang="en-IN" suppressHydrationWarning className={`${inter.variable} ${bricolage.variable} ${anek.variable}`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {/* Photos load from these hosts; opening the connection early cuts the largest paint. */}
         <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
@@ -48,6 +57,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <Footer />
         <BottomNav />
+        <RegisterServiceWorker />
+        {/* Cookieless page counts (no personal data), to see where people drop off between post and deal. */}
+        <Analytics />
       </body>
     </html>
   );

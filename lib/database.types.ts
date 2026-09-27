@@ -339,6 +339,7 @@ export type Database = {
           locality: string | null
           location: unknown
           pincode: string | null
+          previous_price_paise: number | null
           price_paise: number | null
           price_type: Database["public"]["Enums"]["price_type"]
           report_count: number
@@ -370,6 +371,7 @@ export type Database = {
           locality?: string | null
           location: unknown
           pincode?: string | null
+          previous_price_paise?: number | null
           price_paise?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
           report_count?: number
@@ -401,6 +403,7 @@ export type Database = {
           locality?: string | null
           location?: unknown
           pincode?: string | null
+          previous_price_paise?: number | null
           price_paise?: number | null
           price_type?: Database["public"]["Enums"]["price_type"]
           report_count?: number
@@ -441,6 +444,7 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: number
+          image_path: string | null
           kind: Database["public"]["Enums"]["message_kind"]
           offer_paise: number | null
           offer_state: Database["public"]["Enums"]["offer_state"] | null
@@ -451,6 +455,7 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: never
+          image_path?: string | null
           kind?: Database["public"]["Enums"]["message_kind"]
           offer_paise?: number | null
           offer_state?: Database["public"]["Enums"]["offer_state"] | null
@@ -461,6 +466,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: never
+          image_path?: string | null
           kind?: Database["public"]["Enums"]["message_kind"]
           offer_paise?: number | null
           offer_state?: Database["public"]["Enums"]["offer_state"] | null
@@ -550,6 +556,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          away_until: string | null
           city_id: number | null
           created_at: string
           deals_count: number
@@ -562,6 +569,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          away_until?: string | null
           city_id?: number | null
           created_at?: string
           deals_count?: number
@@ -574,6 +582,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          away_until?: string | null
           city_id?: number | null
           created_at?: string
           deals_count?: number
@@ -749,7 +758,9 @@ export type Database = {
       confirm_deal: { Args: { p_deal: string }; Returns: undefined }
       delete_account: { Args: never; Returns: undefined }
       handoff_upi: { Args: { p_conversation: string }; Returns: string }
+      admin_overview: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_chat_participant: { Args: { p_folder: string }; Returns: boolean }
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
       list_cities: {
         Args: never
@@ -812,7 +823,10 @@ export type Database = {
           id: string
           is_demo: boolean
           kind: Database["public"]["Enums"]["listing_kind"]
+          lat: number
+          lng: number
           locality: string
+          previous_price_paise: number | null
           price_paise: number
           price_type: Database["public"]["Enums"]["price_type"]
           status: Database["public"]["Enums"]["listing_status"]
@@ -820,6 +834,7 @@ export type Database = {
           title: string
         }[]
       }
+      suggest_titles: { Args: { p_q: string }; Returns: string[] }
       start_conversation: {
         Args: { p_body: string; p_listing: string }
         Returns: string
@@ -839,7 +854,7 @@ export type Database = {
       item_condition: "new" | "like_new" | "good" | "fair" | "for_parts"
       listing_kind: "offer" | "wanted"
       listing_status: "active" | "reserved" | "sold" | "paused" | "removed"
-      message_kind: "text" | "offer" | "system"
+      message_kind: "text" | "offer" | "system" | "image"
       notification_kind:
         | "message"
         | "offer"
@@ -987,7 +1002,7 @@ export const Constants = {
       item_condition: ["new", "like_new", "good", "fair", "for_parts"],
       listing_kind: ["offer", "wanted"],
       listing_status: ["active", "reserved", "sold", "paused", "removed"],
-      message_kind: ["text", "offer", "system"],
+      message_kind: ["text", "offer", "system", "image"],
       notification_kind: [
         "message",
         "offer",

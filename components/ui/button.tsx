@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 
 const variants = {
   primary: "bg-primary text-on-primary hover:bg-primary-hover",
-  accent: "bg-accent text-on-accent hover:shadow-card",
+  accent: "bg-accent text-on-accent hover:bg-accent-hover hover:shadow-card",
   secondary: "border border-line bg-surface text-ink hover:bg-surface-2",
   ghost: "text-ink hover:bg-surface-2",
 };

@@ -55,6 +55,33 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
         <FieldError list={result.fields?.upiId} />
       </label>
 
+      <fieldset className="space-y-1">
+        <legend className="text-sm font-medium">Away mode</legend>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex-1">
+            <span className="sr-only">Away until</span>
+            <input
+              type="date"
+              className={field}
+              value={values.awayUntil}
+              min={today()}
+              max={today(90)}
+              aria-invalid={!!result.fields?.awayUntil}
+              onChange={(e) => set("awayUntil", e.target.value)}
+            />
+          </label>
+          {values.awayUntil && (
+            <Button variant="ghost" onClick={() => set("awayUntil", "")}>
+              I am back
+            </Button>
+          )}
+        </div>
+        <span className="block text-sm text-ink-2">
+          Going away? Your ads stay up, and buyers see that you reply after this date.
+        </span>
+        <FieldError list={result.fields?.awayUntil} />
+      </fieldset>
+
       <Button type="submit" disabled={pending}>
         Save settings
       </Button>
@@ -65,6 +92,11 @@ export function SettingsForm({ initial }: { initial: SettingsInput }) {
       )}
     </form>
   );
+}
+
+// Dates in India time, the same day the server checks against.
+function today(plusDays = 0) {
+  return new Date(Date.now() + plusDays * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 }
 
 function FieldError({ list }: { list?: string[] }) {

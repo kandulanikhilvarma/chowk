@@ -7,6 +7,7 @@ const base = process.argv[2] ?? "https://chowk-kandula.vercel.app";
 const shots = [
   ["home", "/"],
   ["search", "/s?city=pune&radius=25&sort=nearest"],
+  ["map", "/s?city=pune&radius=50&view=map"],
   ["listing", process.env.AD_PATH ?? "/s"],
   ["post", "/post"],
   ["safety", "/safety"],
@@ -21,6 +22,8 @@ for (const scheme of ["light", "dark"]) {
     // Dark mode only for the two pages the README shows side by side.
     if (scheme === "dark" && !["home", "listing"].includes(name)) continue;
     await page.goto(base + path, { waitUntil: "networkidle" });
+    // Map tiles and the Leaflet chunk arrive after network idle on a slow link.
+    if (name === "map") await page.waitForTimeout(2000);
     await page.screenshot({ path: `docs/screens/${name}-${scheme}.png` });
     console.log(`docs/screens/${name}-${scheme}.png`);
   }

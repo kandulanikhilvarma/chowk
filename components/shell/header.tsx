@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { HeaderLinks } from "./header-links";
+import { SearchInput } from "./recent-searches";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
@@ -17,11 +18,9 @@ export function Header() {
           <label className="relative block">
             <span className="sr-only">Search Chowk</span>
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 size-4.5 -translate-y-1/2 text-ink-2" />
-            <input
-              name="q"
-              type="search"
+            <SearchInput
               placeholder="Search phones, bikes, sofas and books"
-              className="h-11 w-full rounded-full border border-line bg-surface pr-4 pl-10 text-[15px] text-ink placeholder:text-ink-2"
+              className="h-11 w-full rounded-full border border-line bg-surface pr-4 pl-10 text-[15px] text-ink placeholder:text-ink-2 hover:border-ink-2/40"
             />
           </label>
         </form>

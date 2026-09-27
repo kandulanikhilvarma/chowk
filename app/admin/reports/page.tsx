@@ -40,7 +40,7 @@ export default async function AdminReportsPage() {
             <li key={r.id} className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-line">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Badge tone="danger">{reportReasons[r.reason]}</Badge>
-                {r.listing && r.listing.report_count >= 3 && <Badge tone="accent">Hidden from search</Badge>}
+                {r.listing && r.listing.report_count >= 3 && <Badge tone="warning">Hidden from search</Badge>}
                 <span className="text-ink-2">
                   {timeAgo(r.created_at)} by {r.reporter?.display_name ?? "a deleted account"}
                   {r.reporter?.is_guest ? " (guest)" : ""}

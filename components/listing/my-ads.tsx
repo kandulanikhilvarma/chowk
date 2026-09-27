@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ImageOff } from "lucide-react";
 import { useState, useTransition } from "react";
-import { manageAd, type AdAction, type AdResult } from "@/app/me/actions";
+import { manageAd, manageAds, type AdAction, type AdResult } from "@/app/me/actions";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -22,7 +22,7 @@ export type MyAd = {
 
 const badges = {
   active: { tone: "success", label: "Online" },
-  reserved: { tone: "accent", label: "Reserved" },
+  reserved: { tone: "warning", label: "Reserved" },
   paused: { tone: "neutral", label: "Paused" },
   sold: { tone: "primary", label: "Sold" },
   removed: { tone: "danger", label: "Removed" },
@@ -46,11 +46,45 @@ export function MyAds({ ads }: { ads: MyAd[] }) {
     );
   }
   return (
-    <ul className="space-y-3">
-      {ads.map((ad) => (
-        <MyAdRow key={ad.id} ad={ad} />
+    <div className="space-y-3">
+      <BulkBar ads={ads} />
+      <ul className="space-y-3">
+        {ads.map((ad) => (
+          <MyAdRow key={ad.id} ad={ad} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Shows only the bulk actions that apply to two or more ads.
+function BulkBar({ ads }: { ads: MyAd[] }) {
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<AdResult>({});
+  const open = ads.filter((a) => a.status !== "sold" && a.status !== "removed");
+  const groups: [AdAction, string, string[]][] = (
+    [
+      ["renew", "Renew all expired", open.filter((a) => a.expired).map((a) => a.id)],
+      ["pause", "Pause all online", open.filter((a) => !a.expired && a.status === "active").map((a) => a.id)],
+      ["activate", "Put all paused back online", open.filter((a) => !a.expired && a.status === "paused").map((a) => a.id)],
+    ] as [AdAction, string, string[]][]
+  ).filter(([, , ids]) => ids.length > 1);
+
+  if (!groups.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-card bg-surface-2 p-3" aria-busy={pending}>
+      <span className="text-sm font-medium text-ink-2">All at once:</span>
+      {groups.map(([action, label, ids]) => (
+        <Chip key={action} disabled={pending} onClick={() => startTransition(async () => setResult(await manageAds(ids, action)))}>
+          {label} ({ids.length})
+        </Chip>
       ))}
-    </ul>
+      {(result.error || result.notice) && (
+        <p role="status" className={`w-full text-sm ${result.error ? "text-danger" : "text-success"}`}>
+          {result.error ?? result.notice}
+        </p>
+      )}
+    </div>
   );
 }
 

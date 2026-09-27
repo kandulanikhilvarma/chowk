@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { coverUrl } from "@/components/chat/ad-strip";
 import { ChatRoom } from "@/components/chat/chat-room";
-import { priceLabel } from "@/lib/format";
+import { awayLabel, priceLabel } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Chat", robots: { index: false } };
@@ -23,14 +23,14 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     supabase
       .from("conversations")
       .select(
-        "id, listing_id, buyer_id, seller_id, buyer_met_at, seller_met_at, listing:listings(id, title, price_paise, price_type, status, demo_image_url, images:listing_images(thumb_path, position)), buyer:profiles!conversations_buyer_id_fkey(display_name), seller:profiles!conversations_seller_id_fkey(display_name)",
+        "id, listing_id, buyer_id, seller_id, buyer_met_at, seller_met_at, listing:listings(id, title, price_paise, price_type, status, demo_image_url, images:listing_images(thumb_path, position)), buyer:profiles!conversations_buyer_id_fkey(display_name, away_until), seller:profiles!conversations_seller_id_fkey(display_name, away_until)",
       )
       .eq("id", id)
       .maybeSingle(),
     // ponytail: first 500 messages only; page backwards when chats get that long.
     supabase
       .from("messages")
-      .select("id, sender_id, kind, body, offer_paise, offer_state, created_at")
+      .select("id, sender_id, kind, body, offer_paise, offer_state, image_path, created_at")
       .eq("conversation_id", id)
       .order("created_at")
       .limit(500),
@@ -53,6 +53,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
   if (block.error) throw new Error(`block read failed: ${block.error.message}`);
   const s = stats as Stats | null;
   const l = c.listing;
+  const otherProfile = role === "buyer" ? c.seller : c.buyer;
 
   return (
     <ChatRoom
@@ -61,7 +62,8 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
       role={role}
       other={{
         id: otherId,
-        name: (role === "buyer" ? c.seller : c.buyer)?.display_name ?? "Chowk member",
+        name: otherProfile?.display_name ?? "Chowk member",
+        away: awayLabel(otherProfile?.away_until),
         level: s?.level ?? "newcomer",
         friendlyRaters: s?.friendly_raters ?? 0,
         reliableRaters: s?.reliable_raters ?? 0,

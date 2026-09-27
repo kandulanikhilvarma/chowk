@@ -33,7 +33,9 @@ test("posting and chatting send signed-out visitors to sign in and back", async 
   await page.goto("/s");
   await page.locator('a[href^="/l/"]').first().click();
   await page.getByRole("link", { name: /Chat with seller|I have this/ }).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fmessages%3Flisting%3D[0-9a-f-]{36}$/);
+  // /messages and /login both compile on first hit against a cold dev server, which takes
+  // longer than the 5s default. The redirect itself is immediate once they are built.
+  await expect(page).toHaveURL(/\/login\?next=%2Fmessages%3Flisting%3D[0-9a-f-]{36}$/, { timeout: 20_000 });
 
   await page.goBack();
   await page.getByRole("button", { name: "Report this ad" }).click();

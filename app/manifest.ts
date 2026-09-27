@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Free marketplace for India. Sell what you do not use. Find what you need from people near you.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fbf8f3",
-    theme_color: "#2b3a8c",
+    background_color: "#f7f7f4",
+    theme_color: "#14532d",
     lang: "en-IN",
     categories: ["shopping", "lifestyle"],
     // ponytail: one SVG icon covers every size in current browsers; add PNG icons if an old Android launcher needs them.

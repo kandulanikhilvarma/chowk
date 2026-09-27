@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BadgeCheck, CalendarDays, Handshake, Star } from "lucide-react";
-import { ListingCard, type ListingCardData } from "@/components/listing/listing-card";
+import { ListingCard } from "@/components/listing/listing-card";
 import { ReportButton } from "@/components/safety/report-button";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { badgeLabel, levelLabel } from "@/lib/badges";
-import { photoBase } from "@/lib/listings";
+import { sellerListings } from "@/lib/listings";
 import { supabasePublic } from "@/lib/supabase/public";
 
 export const revalidate = 60;
@@ -20,7 +21,7 @@ const getProfile = cache(async (id: string) => {
   if (!UUID.test(id)) return null;
   const { data, error } = await supabasePublic
     .from("profiles")
-    .select("id, display_name, is_business, is_guest, created_at")
+    .select("id, display_name, avatar_url, is_business, is_guest, created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`profile ${id} failed: ${error.message}`);
@@ -36,46 +37,21 @@ export default async function ProfilePage({ params }: Props) {
   const profile = await getProfile((await params).id);
   if (!profile) notFound();
 
-  const [{ data: stats }, { data: rows, error }] = await Promise.all([
+  const [{ data: stats }, listings] = await Promise.all([
     supabasePublic.rpc("profile_public_stats", { p_user: profile.id }),
-    supabasePublic
-      .from("listings")
-      .select("id, title, price_paise, price_type, kind, locality, created_at, is_demo, demo_image_url, city:cities(name), images:listing_images(thumb_path, position)")
-      .eq("user_id", profile.id)
-      .in("status", ["active", "reserved"])
-      .gt("expires_at", new Date().toISOString())
-      .order("bumped_at", { ascending: false })
-      .limit(24),
+    sellerListings(profile.id),
   ]);
-  if (error) throw new Error(`listings for ${profile.id} failed: ${error.message}`);
 
   const s = stats as Stats | null;
   const badges = s
     ? [badgeLabel("friendly", s.friendly_raters), badgeLabel("reliable", s.reliable_raters)].filter((b): b is string => !!b)
     : [];
-  const listings: ListingCardData[] = (rows ?? []).map((r) => {
-    const thumb = [...r.images].sort((a, b) => a.position - b.position)[0]?.thumb_path;
-    return {
-      id: r.id,
-      title: r.title,
-      pricePaise: r.price_paise,
-      priceType: r.price_type,
-      kind: r.kind,
-      city: r.city?.name ?? "",
-      locality: r.locality,
-      createdAt: r.created_at,
-      imageUrl: thumb ? photoBase + thumb : r.demo_image_url,
-      isDemo: r.is_demo,
-    };
-  });
   const since = new Date(profile.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 pt-4 md:pt-8">
       <header className="flex flex-wrap items-center gap-4 rounded-card bg-surface p-5 ring-1 ring-line">
-        <span className="grid size-16 place-items-center rounded-full bg-primary-soft font-display text-3xl font-bold text-primary">
-          {profile.display_name.charAt(0).toUpperCase()}
-        </span>
+        <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
         <div className="min-w-0 flex-1 space-y-1">
           <h1 className="truncate text-2xl font-bold">{profile.display_name}</h1>
           <div className="flex flex-wrap gap-2">
