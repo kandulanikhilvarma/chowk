@@ -26,8 +26,9 @@ const pairs = [
   ["ink-2", "bg"], ["ink-2", "surface"], ["ink-2", "surface-2"],
   ["primary", "bg"], ["primary", "surface"], ["primary", "primary-soft"],
   ["on-primary", "primary"], ["on-primary", "primary-hover"],
-  ["on-accent", "accent"],
+  ["on-accent", "accent"], ["on-accent", "accent-hover"],
   ["success", "surface"], ["success", "success-soft"],
+  ["warning", "surface"], ["warning", "warning-soft"],
   ["danger", "surface"], ["danger", "danger-soft"],
 ];
 

@@ -6,8 +6,10 @@ declare
   seller constant uuid := '00000000-0000-4000-8000-0000000000a1';
   buyer constant uuid := '00000000-0000-4000-8000-0000000000b2';
   guest constant uuid := '00000000-0000-4000-8000-0000000000c3';
+  stranger constant uuid := '00000000-0000-4000-8000-0000000000d4';
   cat int; city int;
-  lid uuid; lid2 uuid; cid uuid; cid2 uuid; did uuid; mid bigint;
+  lid uuid; lid2 uuid; lid3 uuid; cid uuid; cid2 uuid; cid3 uuid; did uuid; mid bigint;
+  overview jsonb;
   n int := 0; cnt int; rid bigint;
 begin
   select id into cat from public.categories where slug = 'mobiles';
@@ -15,7 +17,8 @@ begin
   insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at, is_anonymous) values
     (seller, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'seller@test.invalid', '{}', now(), now(), false),
     (buyer, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'buyer@test.invalid', '{}', now(), now(), false),
-    (guest, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', null, '{}', now(), now(), true);
+    (guest, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', null, '{}', now(), now(), true),
+    (stranger, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'stranger@test.invalid', '{}', now(), now(), false);
 
   -- Seller ---------------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', seller, 'role', 'authenticated')::text, true);
@@ -318,6 +321,81 @@ begin
   where s.thumb_path is null and s.demo_image_url is null;
   if cnt <> 0 then raise exception 'FAIL: photo filter returned ads without photos' using errcode = 'CHW01'; end if;
   n := n + 2;
+
+  -- Release 2: price drops, away mode, chat photos, admin overview ------------------------------
+  perform set_config('request.jwt.claims', json_build_object('sub', seller, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  insert into public.listings (category_id, title, description, price_paise, price_type, city_id, location)
+  values (cat, 'e2e_ phone three', 'test', 100000, 'fixed', city, extensions.st_setsrid(extensions.st_makepoint(78.48, 17.38), 4326)::extensions.geography)
+  returning id into lid3;
+  update public.listings set price_paise = 80000 where id = lid3;
+  if (select previous_price_paise from public.listings where id = lid3) is distinct from 100000 then
+    raise exception 'FAIL: a price drop did not keep the old price' using errcode = 'CHW01';
+  end if;
+  update public.listings set price_paise = 120000 where id = lid3;
+  if (select previous_price_paise from public.listings where id = lid3) is not null then
+    raise exception 'FAIL: a price rise kept a stale drop' using errcode = 'CHW01';
+  end if;
+  begin
+    update public.listings set previous_price_paise = 999999 where id = lid3;
+    raise exception 'FAIL: seller wrote previous_price_paise' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 3;
+  end;
+
+  update public.profiles set away_until = current_date + 5 where id = seller;
+  update public.profiles set away_until = current_date + 5 where id = buyer;
+  begin
+    perform public.admin_overview();
+    raise exception 'FAIL: non-admin read the admin overview' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+  execute 'reset role';
+  if (select away_until from public.profiles where id = seller) is distinct from current_date + 5
+     or (select away_until from public.profiles where id = buyer) is not null then
+    raise exception 'FAIL: away mode wrote the wrong profile' using errcode = 'CHW01';
+  end if;
+  n := n + 1;
+
+  -- The buyer lifts the block, chats about the new ad and sends a photo.
+  perform set_config('request.jwt.claims', json_build_object('sub', buyer, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  delete from public.blocks where blocked_id = seller;
+  cid3 := public.start_conversation(lid3, 'Photo of the screen?');
+  insert into storage.objects (bucket_id, name) values ('chat-images', cid3::text || '/00000000-0000-4000-8000-00000000f001.webp');
+  insert into public.messages (conversation_id, kind, body, image_path)
+  values (cid3, 'image', 'Photo', cid3::text || '/00000000-0000-4000-8000-00000000f001.webp');
+  n := n + 2;
+  begin
+    insert into public.messages (conversation_id, kind, body) values (cid3, 'image', 'Photo');
+    raise exception 'FAIL: photo message without a photo' using errcode = 'CHW01';
+  exception when check_violation then n := n + 1;
+  end;
+  overview := public.admin_overview();
+  if not overview ? 'deals_7d' then raise exception 'FAIL: admin overview missing counts' using errcode = 'CHW01'; end if;
+  n := n + 1;
+
+  -- A signed-in stranger cannot see or add photos in someone else's chat.
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', stranger, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into cnt from storage.objects where bucket_id = 'chat-images' and name like cid3::text || '/%';
+  if cnt <> 0 then raise exception 'FAIL: stranger listed chat photos' using errcode = 'CHW01'; end if;
+  n := n + 1;
+  begin
+    insert into storage.objects (bucket_id, name) values ('chat-images', cid3::text || '/00000000-0000-4000-8000-00000000f002.webp');
+    raise exception 'FAIL: stranger uploaded into a chat folder' using errcode = 'CHW01';
+  exception when insufficient_privilege then n := n + 1;
+  end;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  execute 'set local role anon';
+  select count(*) into cnt from public.suggest_titles('royl enfeild');
+  if cnt = 0 then raise exception 'FAIL: suggestions missed a typo of a demo title' using errcode = 'CHW01'; end if;
+  select count(*) into cnt from public.search_listings(p_limit => 60) s where s.lat is null or s.lng is null;
+  if cnt <> 0 then raise exception 'FAIL: search returned ads without a map point' using errcode = 'CHW01'; end if;
+  n := n + 2;
+  execute 'reset role';
 
   raise exception 'RLS OK: % checks passed', n;
 end $$;

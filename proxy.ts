@@ -29,7 +29,9 @@ export function contentSecurityPolicy(nonce: string, isDev = false) {
     // Without this, worker-src falls back to script-src, where strict-dynamic ignores 'self'
     // and the service worker never registers.
     "worker-src 'self'",
-    `img-src 'self' blob: data: https://images.unsplash.com ${origin}`,
+    // lh3.googleusercontent.com: Google profile photos from sign-in, shown as seller avatars.
+    // tile.openstreetmap.org: map tiles in the search map view.
+    `img-src 'self' blob: data: https://images.unsplash.com https://lh3.googleusercontent.com https://tile.openstreetmap.org ${origin}`,
     "font-src 'self'",
     // wss: Supabase Realtime carries the live chat. Plain ws: is the dev server's hot reload.
     `connect-src 'self' ${origin} ${origin.replace("https://", "wss://")}${isDev ? " ws:" : ""}`,

@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Anek_Latin, Bricolage_Grotesque, Inter } from "next/font/google";
 import { BottomNav } from "@/components/shell/bottom-nav";
@@ -57,6 +58,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Footer />
         <BottomNav />
         <RegisterServiceWorker />
+        {/* Cookieless page counts (no personal data), to see where people drop off between post and deal. */}
+        <Analytics />
       </body>
     </html>
   );

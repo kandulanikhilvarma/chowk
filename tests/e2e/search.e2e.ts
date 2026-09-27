@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 // Runs against the shared demo seed (is_demo rows), so it needs no test data of its own.
 const card = 'main li a[href^="/l/"]';
 const titles = (page: Page) => page.locator(`${card} h3`).allTextContents();
-const places = (page: Page) => page.locator(`${card} span.truncate`).allTextContents();
+const places = (page: Page) => page.locator(`${card} [data-place]`).allTextContents();
 const prices = (page: Page) => page.locator(`${card} > div:last-child > p:first-child > span:first-child`).allTextContents();
 const km = (place: string) => Number(place.match(/· (?:< ?)?([\d.]+) km/)?.[1]);
 
@@ -16,7 +16,7 @@ test("keyword search finds the matching ads", async ({ page }) => {
 
 test("category page with a city shows only nearby ads in that category", async ({ page }) => {
   await page.goto("/c/bikes?city=pune");
-  await expect(page.getByText("Ads within 25 km of Pune")).toBeVisible();
+  await expect(page.getByText("Within 25 km of Pune")).toBeVisible();
   expect(await titles(page)).toEqual(
     expect.arrayContaining([expect.stringContaining("Royal Enfield"), expect.stringContaining("Ladies cycle")]),
   );
@@ -40,9 +40,10 @@ test("radius search sorts nearest first and stays inside the radius", async ({ p
 
 test("search form sends the query and city", async ({ page }) => {
   await page.goto("/s");
-  await page.getByRole("searchbox", { name: "Search" }).fill("iphone");
+  // A search box with suggestions (a datalist) is a combobox to assistive tech.
+  await page.getByRole("combobox", { name: "Search", exact: true }).fill("iphone");
   await page.getByRole("combobox", { name: "City" }).selectOption("mumbai");
-  await page.getByRole("button", { name: "Show results" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/q=iphone.*city=mumbai|city=mumbai.*q=iphone/);
   // The URL changes before the new results render, so wait for the card itself.
   await expect(page.locator(card, { hasText: "iPhone 13" }).first()).toBeVisible();
@@ -61,19 +62,39 @@ test("a plain browse starts at the visitor city and a search does not", async ({
   const context = await browser.newContext({ extraHTTPHeaders: { "x-vercel-ip-city": "Bangalore" } });
   const page = await context.newPage();
   await page.goto("/s");
-  await expect(page.getByText("Ads within 25 km of Bengaluru")).toBeVisible();
+  await expect(page.getByText("Within 25 km of Bengaluru")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "City" })).toHaveValue("bengaluru");
   await page.goto("/s?q=royal+enfield");
-  await expect(page.getByText(/Ads within/)).toHaveCount(0);
+  await expect(page.getByText(/Within \d+ km of/)).toHaveCount(0);
   await context.close();
 });
 
 test("seller, date and photo filters stay in the form", async ({ page }) => {
   await page.goto("/s?days=30&seller=private&photos=1");
+  // Active filters show as removable chips, and the Filters button counts them.
+  const chips = page.getByRole("list", { name: "Active filters" });
+  await expect(chips.getByRole("link", { name: "Remove filter: Last 30 days" })).toBeVisible();
+  await expect(chips.getByRole("link", { name: "Remove filter: Private sellers" })).toBeVisible();
+  await page.getByRole("button", { name: /Filters\s*3/ }).click();
   await expect(page.getByRole("combobox", { name: "Posted within" })).toHaveValue("30");
   await expect(page.getByRole("combobox", { name: "Seller" })).toHaveValue("private");
-  await expect(page.getByRole("checkbox", { name: "With photos" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Only ads with photos" })).toBeChecked();
+  await page.getByRole("button", { name: "Close filters" }).click();
   await expect(page.locator(card).first()).toBeVisible();
+});
+
+test("removing a filter chip drops only that filter", async ({ page }) => {
+  await page.goto("/s?price_type=free&sort=newest");
+  await page.getByRole("link", { name: "Remove filter: Free" }).click();
+  await expect(page).toHaveURL(/sort=newest/);
+  await expect(page).not.toHaveURL(/price_type/);
+});
+
+test("the map view shows a pin per ad", async ({ page }) => {
+  await page.goto("/s?city=pune&radius=50&view=map");
+  await expect(page.getByRole("region", { name: /Map of \d+ ads/ })).toBeVisible();
+  await expect(page.locator(".map-pin").first()).toBeVisible();
+  expect(await page.locator(".map-pin").count()).toBe(await page.locator(card).count());
 });
 
 test("an ad page has a share image and shows no demo wording", async ({ page, request }) => {

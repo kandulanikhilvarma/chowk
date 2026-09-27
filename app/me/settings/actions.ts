@@ -12,7 +12,18 @@ const schema = z.object({
     .string()
     .trim()
     .regex(/^([a-zA-Z0-9._-]{2,64}@[a-zA-Z]{2,64})?$/, "Enter a UPI ID like name@okbank."),
+  // Empty means "not away". A date up to 90 days ahead; the ad page and chats show it until then.
+  awayUntil: z
+    .string()
+    .regex(/^(\d{4}-\d{2}-\d{2})?$/, "Pick a date.")
+    .refine((d) => !d || awayWindow(d), "Pick a date from today up to 90 days ahead."),
 });
+
+function awayWindow(date: string) {
+  const day = Date.parse(`${date}T00:00:00+05:30`);
+  const today = Date.parse(`${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })}T00:00:00+05:30`);
+  return day >= today && day <= today + 90 * 86_400_000;
+}
 
 export type SettingsInput = z.input<typeof schema>;
 export type SettingsResult = { error?: string; notice?: string; fields?: Record<string, string[] | undefined> };
@@ -26,9 +37,12 @@ export async function saveSettings(input: unknown): Promise<SettingsResult> {
   const supabase = await createClient();
   const uid = (await supabase.auth.getClaims()).data?.claims.sub;
   if (!uid) return { error: "Your session ended. Sign in again." };
-  const { displayName, isBusiness, upiId } = parsed.data;
+  const { displayName, isBusiness, upiId, awayUntil } = parsed.data;
 
-  const profile = await supabase.from("profiles").update({ display_name: displayName, is_business: isBusiness }).eq("id", uid);
+  const profile = await supabase
+    .from("profiles")
+    .update({ display_name: displayName, is_business: isBusiness, away_until: awayUntil || null })
+    .eq("id", uid);
   if (profile.error) {
     console.error("profile update failed", profile.error);
     return FAILED;

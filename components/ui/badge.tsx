@@ -5,6 +5,7 @@ const tones = {
   primary: "bg-primary-soft text-primary",
   accent: "bg-accent text-on-accent",
   success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
 };
 

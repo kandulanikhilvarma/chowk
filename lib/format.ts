@@ -30,6 +30,16 @@ export function formatDistance(km: number): string {
   return `${rounded} km`;
 }
 
+const dayMonth = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+
+/** "Away until 12 Oct" while a seller's away date (YYYY-MM-DD, India time) is today or later, else null. */
+export function awayLabel(awayUntil: string | null | undefined, now: Date = new Date()): string | null {
+  if (!awayUntil) return null;
+  const today = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  if (awayUntil < today) return null;
+  return `Away until ${dayMonth.format(new Date(`${awayUntil}T12:00:00+05:30`))}`;
+}
+
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 export function timeAgo(date: string | Date, now: Date = new Date()): string {

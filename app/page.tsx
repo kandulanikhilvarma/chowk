@@ -5,41 +5,50 @@ import {
   Bike,
   BookOpen,
   Car,
+  Gift,
   Home as HomeIcon,
   IndianRupee,
   Laptop,
+  type LucideIcon,
   Music,
+  PackageOpen,
   PawPrint,
   Search,
   Shirt,
   ShieldCheck,
   Smartphone,
   Sofa,
+  Sparkles,
   Star,
+  Tag,
   Wrench,
 } from "lucide-react";
-import { ListingCard, type ListingCardData } from "@/components/listing/listing-card";
+import { ListingRail } from "@/components/listing/listing-rail";
+import { RecentlyViewed } from "@/components/listing/recently-viewed";
+import { SearchInput } from "@/components/shell/recent-searches";
 import { ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ListingGridSkeleton, Skeleton } from "@/components/ui/skeleton";
-import { searchListings } from "@/lib/listings";
+import { getTopCategories, searchListings } from "@/lib/listings";
 
 // ponytail: one minute of staleness keeps the home page cached; add revalidateTag on post when that feels slow.
 export const revalidate = 60;
 
-const categories = [
-  { slug: "mobiles", label: "Mobiles", icon: Smartphone },
-  { slug: "vehicles", label: "Cars", icon: Car },
-  { slug: "bikes", label: "Bikes", icon: Bike },
-  { slug: "furniture", label: "Furniture", icon: Sofa },
-  { slug: "electronics", label: "Electronics", icon: Laptop },
-  { slug: "property", label: "Property", icon: HomeIcon },
-  { slug: "fashion", label: "Fashion", icon: Shirt },
-  { slug: "books", label: "Books", icon: BookOpen },
-  { slug: "kids", label: "Kids", icon: Baby },
-  { slug: "hobbies", label: "Hobbies", icon: Music },
-  { slug: "pets", label: "Pets", icon: PawPrint },
-  { slug: "services", label: "Services", icon: Wrench },
-];
+// Labels and order come from the categories table; only the icons live here. A new category shows a tag icon.
+const icons: Record<string, LucideIcon> = {
+  mobiles: Smartphone,
+  vehicles: Car,
+  bikes: Bike,
+  furniture: Sofa,
+  electronics: Laptop,
+  property: HomeIcon,
+  fashion: Shirt,
+  books: BookOpen,
+  kids: Baby,
+  hobbies: Music,
+  pets: PawPrint,
+  services: Wrench,
+};
 
 const trust = [
   { icon: IndianRupee, title: "Free for everyone", body: "No listing fees. No commission. You keep every rupee." },
@@ -47,32 +56,32 @@ const trust = [
   { icon: Star, title: "Trust you can see", body: "Friendly and reliable badges come only from real deals." },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const categories = await getTopCategories();
+
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 pt-4 md:pt-8">
-      <section className="relative isolate overflow-hidden rounded-card bg-brand-deep px-5 py-8 text-white md:px-10 md:py-14">
+      <section className="relative isolate overflow-hidden rounded-card bg-brand-deep px-5 py-8 text-white md:px-10 md:py-16">
         <svg
           aria-hidden
           viewBox="0 0 200 200"
           className="absolute -right-16 -bottom-16 -z-10 size-44 text-white opacity-[0.08] md:-right-6 md:-bottom-6 md:size-80"
         >
           <path d="M85 0h30v200H85zM0 85h200v30H0z" fill="currentColor" />
-          <rect x="62" y="62" width="76" height="76" rx="18" fill="#14532D" stroke="currentColor" strokeWidth="14" />
+          <rect x="62" y="62" width="76" height="76" rx="18" className="fill-brand-deep" stroke="currentColor" strokeWidth="14" />
         </svg>
-        <h1 className="max-w-xl text-3xl font-extrabold md:text-4xl">Sell it. Find it. Around the corner.</h1>
-        <p className="mt-3 max-w-lg text-base text-white/85 md:text-lg">
+        <h1 className="max-w-2xl text-hero font-extrabold tracking-tight text-balance">Sell it. Find it. Around the corner.</h1>
+        <p className="mt-3 max-w-lg text-base text-pretty text-white/85 md:text-lg">
           Chowk is free for everyone. Post an ad in one minute, chat safely, and meet people near you.
         </p>
 
         <form action="/s" role="search" className="mt-6 max-w-lg md:hidden">
           <label className="relative block">
             <span className="sr-only">Search Chowk</span>
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#4A5750]" />
-            <input
-              name="q"
-              type="search"
+            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-field-on-brand-2" />
+            <SearchInput
               placeholder="What are you looking for?"
-              className="h-12 w-full rounded-full bg-white pr-4 pl-12 text-base text-[#14201A] placeholder:text-[#4A5750]"
+              className="h-12 w-full rounded-full bg-white pr-4 pl-12 text-base text-field-on-brand placeholder:text-field-on-brand-2"
             />
           </label>
         </form>
@@ -81,7 +90,7 @@ export default function Home() {
           <ButtonLink href="/post" variant="accent" size="lg">
             Post an ad
           </ButtonLink>
-          <ButtonLink href="/s" variant="ghost" size="lg" className="text-white ring-1 ring-white/40 hover:bg-white/10">
+          <ButtonLink href="/s" variant="ghost" size="lg" className="text-white ring-1 ring-white/40 hover:bg-white/10 hover:ring-white/70">
             Explore near you
           </ButtonLink>
         </div>
@@ -92,19 +101,22 @@ export default function Home() {
           Browse categories
         </h2>
         <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-12">
-          {categories.map(({ slug, label, icon: Icon }) => (
-            <li key={slug}>
-              <Link
-                href={`/c/${slug}`}
-                className="pressable flex flex-col items-center gap-2 rounded-card p-2 text-center hover:bg-surface"
-              >
-                <span className="grid size-14 place-items-center rounded-full bg-primary-soft text-primary">
-                  <Icon className="size-6" aria-hidden />
-                </span>
-                <span className="text-xs font-medium text-ink">{label}</span>
-              </Link>
-            </li>
-          ))}
+          {categories.map(({ slug, name }) => {
+            const Icon = icons[slug] ?? Tag;
+            return (
+              <li key={slug}>
+                <Link
+                  href={`/c/${slug}`}
+                  className="group pressable flex flex-col items-center gap-2 rounded-card p-2 text-center hover:bg-surface"
+                >
+                  <span className="grid size-14 place-items-center rounded-full bg-primary-soft text-primary transition-transform duration-200 ease-(--ease-out) group-hover:bg-primary group-hover:text-on-primary motion-safe:group-hover:-translate-y-0.5">
+                    <Icon className="size-6" aria-hidden />
+                  </span>
+                  <span className="text-xs font-medium text-ink">{name}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -112,6 +124,8 @@ export default function Home() {
       <Suspense fallback={<RailsFallback />}>
         <Rails />
       </Suspense>
+
+      <RecentlyViewed />
 
       {/* One surface split by hairlines, not three cards. Nothing here is elevated above
           the rest, so a row of boxes would only add borders. */}
@@ -138,10 +152,44 @@ async function Rails() {
     searchListings({ p_price_type: "free", p_limit: 4 }),
   ]);
 
+  // A new region with no ads yet should ask for the first one, not show a gap.
+  if (fresh.length === 0) {
+    return (
+      <section className="rounded-card bg-surface ring-1 ring-line">
+        <EmptyState
+          icon={PackageOpen}
+          title="Nothing posted yet"
+          action={
+            <ButtonLink href="/post" variant="accent">
+              Post the first ad
+            </ButtonLink>
+          }
+        >
+          Chowk is new here. The first ads get the most views.
+        </EmptyState>
+      </section>
+    );
+  }
+
   return (
     <>
-      <ListingRail id="fresh" title="Fresh on Chowk" href="/s" listings={fresh} />
-      <ListingRail id="free" title="Free to a good home" href="/s?price_type=free" listings={free} />
+      <ListingRail
+        id="fresh"
+        title="Fresh on Chowk"
+        href="/s?sort=newest"
+        listings={fresh}
+        priority={4}
+        icon={<Sparkles className="size-5 text-primary" aria-hidden />}
+      />
+      {/* A free ad is often in "Fresh" too, and two morph names on one page cancel the transition. */}
+      <ListingRail
+        id="free"
+        title="Free to a good home"
+        href="/s?price_type=free"
+        listings={free}
+        morph={false}
+        icon={<Gift className="size-5 text-success" aria-hidden />}
+      />
     </>
   );
 }
@@ -160,28 +208,5 @@ function RailsFallback() {
         </section>
       ))}
     </>
-  );
-}
-
-function ListingRail({ id, title, href, listings }: { id: string; title: string; href: string; listings: ListingCardData[] }) {
-  if (listings.length === 0) return null;
-  return (
-    <section aria-labelledby={id}>
-      <div className="mb-4 flex items-end justify-between">
-        <h2 id={id} className="text-2xl font-bold">
-          {title}
-        </h2>
-        <Link href={href} className="text-sm font-semibold text-primary hover:underline">
-          See all
-        </Link>
-      </div>
-      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
-        {listings.map((listing) => (
-          <li key={listing.id}>
-            <ListingCard listing={listing} />
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

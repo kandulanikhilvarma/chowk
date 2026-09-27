@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { ListingCard } from "@/components/listing/listing-card";
 import { ButtonLink } from "@/components/ui/button";
-import { photoBase } from "@/lib/listings";
+import { thumbUrl } from "@/lib/listings";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Watchlist", robots: { index: false } };
@@ -16,7 +16,7 @@ export default async function SavedPage() {
   const { data, error } = await supabase
     .from("favorites")
     .select(
-      "created_at, listing:listings(id, title, price_paise, price_type, kind, locality, created_at, demo_image_url, city:cities(name), images:listing_images(thumb_path, position))",
+      "created_at, listing:listings(id, title, price_paise, price_type, kind, status, locality, created_at, demo_image_url, city:cities(name), images:listing_images(thumb_path, position))",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -36,27 +36,25 @@ export default async function SavedPage() {
         </div>
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
-          {listings.map((l) => {
-            const cover = [...l.images].sort((a, b) => a.position - b.position)[0];
-            return (
-              <li key={l.id} className="space-y-2">
-                <ListingCard
-                  listing={{
-                    id: l.id,
-                    title: l.title,
-                    pricePaise: l.price_paise,
-                    priceType: l.price_type,
-                    kind: l.kind,
-                    city: l.city?.name ?? "",
-                    locality: l.locality,
-                    createdAt: l.created_at,
-                    imageUrl: cover ? photoBase + cover.thumb_path : l.demo_image_url,
-                  }}
-                />
-                <FavoriteButton listingId={l.id} initialSaved />
-              </li>
-            );
-          })}
+          {listings.map((l) => (
+            <li key={l.id} className="space-y-2">
+              <ListingCard
+                listing={{
+                  id: l.id,
+                  title: l.title,
+                  pricePaise: l.price_paise,
+                  priceType: l.price_type,
+                  kind: l.kind,
+                  status: l.status,
+                  city: l.city?.name ?? "",
+                  locality: l.locality,
+                  createdAt: l.created_at,
+                  imageUrl: thumbUrl(l.images) ?? l.demo_image_url,
+                }}
+              />
+              <FavoriteButton listingId={l.id} initialSaved />
+            </li>
+          ))}
         </ul>
       )}
     </div>

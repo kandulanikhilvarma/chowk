@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDistance, formatPrice, formatPriceShort, priceLabel, timeAgo } from "../../lib/format";
+import { awayLabel, formatDistance, formatPrice, formatPriceShort, priceLabel, timeAgo } from "../../lib/format";
 
 describe("formatPrice", () => {
   it("uses Indian digit grouping", () => {
@@ -47,5 +47,21 @@ describe("timeAgo", () => {
     expect(timeAgo("2026-09-15T11:59:30Z", now)).toBe("Just now");
     expect(timeAgo("2026-09-14T12:00:00Z", now)).toBe("yesterday");
     expect(timeAgo("2026-09-12T12:00:00Z", now)).toBe("3 days ago");
+  });
+});
+
+describe("awayLabel", () => {
+  const now = new Date("2026-09-27T20:00:00+05:30");
+  it("shows the date while it is today or later", () => {
+    expect(awayLabel("2026-09-27", now)).toBe("Away until 27 Sept");
+    expect(awayLabel("2026-10-12", now)).toBe("Away until 12 Oct");
+  });
+  it("hides a past date and an empty one", () => {
+    expect(awayLabel("2026-09-26", now)).toBeNull();
+    expect(awayLabel(null, now)).toBeNull();
+  });
+  it("uses India time, not the server clock", () => {
+    // 20:00 UTC on the 26th is already the 27th in India.
+    expect(awayLabel("2026-09-26", new Date("2026-09-26T20:00:00Z"))).toBeNull();
   });
 });

@@ -28,7 +28,7 @@ export function AdStrip({ id, title, price, status, imageUrl }: { id: string; ti
         <span className="font-display font-bold text-ink">{price}</span>
       </span>
       {status === "sold" && <Badge tone="success">Sold</Badge>}
-      {status === "reserved" && <Badge tone="accent">Reserved</Badge>}
+      {status === "reserved" && <Badge tone="warning">Reserved</Badge>}
     </Link>
   );
 }
